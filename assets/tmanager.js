@@ -130,16 +130,14 @@ var tmanager = (function () {
         var spa = this;
 
         this.tsStore.save(tiddler, function(response, error){
-            
             if (response) {
-                console.log('Saved tiddler');                
+                console.log('Saved tiddler');
                 spa.getTiddlerDetail(workingTiddlerIndex, null, successCallback);
             } else if (error.name === 'SaveError') {
                 console.log('There was a problem saving. Please try again');
             } else if (error.name === 'EmptyError') {
                 console.log('There is nothing to save');
-            }
-            
+            }            
         });
     };
 
@@ -347,7 +345,7 @@ var tmanager = (function () {
                     currentModalTiddlerIndex = 0;
                 } else {
                     mySPA.tiddlers.splice(currentModalTiddlerIndex, 1);
-                }            
+                }
 
                 if (mySPA.tiddlers.length > 0) {
                     mySPA.getTiddlerDetail(currentModalTiddlerIndex, 'deleted', getTiddlerDetailSuccessCallback);
@@ -429,7 +427,7 @@ var tmanager = (function () {
         $('#tiddlerModal').html(tiddlerModalTemplate(slideData));
 
         pageHeight = $(window).height();
-        windowHeight = Math.floor(pageHeight * 0.5);
+        //windowHeight = Math.floor(pageHeight * 0.9);
 
         $('.carousel-control.left').click(function () {
             slideCard('prev');
@@ -439,8 +437,12 @@ var tmanager = (function () {
         });
 
 
+        $('#tiddlerModal .modal-content').css({
+            'max-height': (Math.floor(pageHeight * 0.9)) + 'px'
+        });
+
         $('#tiddlerModal .modal-body').css({
-            'max-height': windowHeight + 'px'
+            'max-height': (Math.floor(pageHeight * 0.5)) + 'px'
         });
 
         if (direction === 'deleted') {
