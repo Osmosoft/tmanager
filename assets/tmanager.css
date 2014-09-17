@@ -288,6 +288,9 @@ body {
     text-align:left;
 }
 
+.button-display-toggle {
+  display: none;
+}
 
 /* Portrait Media Queries */
 @media (min-width:320px) and (orientation:portrait) { 

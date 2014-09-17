@@ -64,9 +64,10 @@ var tmanager = (function () {
 	
     function SPA(host) {
         this.host = host,
+        this.space = '',
         this.tsStore = tiddlyweb.Store(null, false),
         this.tiddlers = [],
-        this.workingTiddler = '',
+        this.workingTiddler = null,
         this.workingTiddlerIndex = -1,
         this.configurationTiddler = '';
     }
@@ -78,13 +79,17 @@ var tmanager = (function () {
 
         this.tsStore = tiddlyweb.Store(function () {
 
-            var excludeQuery = ' !#excludeLists !#excludeSearch';
+            var excludeQuery = ' !#excludeLists !#excludeSearch',
+                regex = /(_public|_private|_archive)$/;
 
             spa.tiddlers = spa.tsStore(excludeQuery).unique().sort('title');
+            
+            console.log('Number of tiddlers returned = ' + spa.tiddlers.length);
+            
+            //Set the space name by using the default push location
+            spa.space = spa.tsStore.getDefaults().pushTo.name.replace(regex, '')
 
             successCallback();
-
-            console.log('Number of tiddlers returned = ' + spa.tiddlers.length);
 
         } );
     };
@@ -127,12 +132,14 @@ var tmanager = (function () {
 
     SPA.prototype.saveTiddler = function(tiddler, workingTiddlerIndex, successCallback) {
 
-        var spa = this;
+        var spa = this,
+            card_html,
+            hashCode;
 
         this.tsStore.save(tiddler, function(response, error){
             if (response) {
                 console.log('Saved tiddler');
-                spa.getTiddlerDetail(workingTiddlerIndex, null, successCallback);
+                spa.getTiddlerDetail(workingTiddlerIndex, 'saved', successCallback);
             } else if (error.name === 'SaveError') {
                 console.log('There was a problem saving. Please try again');
             } else if (error.name === 'EmptyError') {
@@ -186,7 +193,20 @@ var tmanager = (function () {
 
     SPA.prototype.setWorkingTiddler = function(tiddler) {
         this.workingTiddler = tiddler;
-    };    
+    };
+
+    SPA.prototype.updateTiddlerInResultSet = function(tiddlerToReplaceHash, newTiddler) {
+        var indexPos = -1;
+        $.each(this.tiddlers, function (index, tiddler) {
+            if (tiddler.fields._hash === tiddlerToReplaceHash) {
+                indexPos = index
+                return false;
+            }
+        });
+        if (indexPos != -1) {
+            this.tiddlers[indexPos] = newTiddler;
+        }
+    };          
     
     /*
      * Privates
@@ -244,8 +264,9 @@ var tmanager = (function () {
             var configTiddler = new tiddlyweb.Tiddler({
                 title: configurationTiddlerName,
                 text:  '{"presets":[]}',
-                tags:  ['tmanager', 'tmanagerconfig'],                        
-            });
+                tags:  ['tmanager', 'tmanagerconfig'],
+                bag:   new tiddlyweb.Bag(mySPA.space + '_private', mySPA.host)                                     
+            });            
             mySPA.tsStore.add(configTiddler, true);
             mySPA.tsStore.save(configTiddler, function(tiddler) {
                 mySPA.configurationTiddler = tiddler;
@@ -256,7 +277,7 @@ var tmanager = (function () {
     }
     
     function renderTiddlersAsCardsCallback(tiddlers) {
-        var col_1_html = '<div class="col-md-4">',
+/*        var col_1_html = '<div class="col-md-4">',
             col_2_html = '<div class="col-md-4">',
             col_3_html = '<div class="col-md-4">',
             item = 0,
@@ -286,6 +307,21 @@ var tmanager = (function () {
         col_1_html = col_1_html + '</div>';
         col_2_html = col_2_html + '</div>';
         col_3_html = col_3_html + '</div>';
+*/
+        var item = 0,
+            cards_html = '',
+            col_check;
+
+        $.each(tiddlers, function () {
+            col_check = item % 3;
+            this.tiddlerIndex = item;
+            if (col_check === 0) {
+                cards_html += '<div class="clearfix visible-xs-block cardclearfix"></div>';
+            }
+            //cards_html += '<li class="col-md-4">' + cardTemplate(this) + '</li>';
+            cards_html +=  cardTemplate(this);
+            item = item + 1;
+        });
 
         //$("#cards").html('<ul class="list-unstyled">'  + cards_html + '</ul>');
         $('#cards').html(cards_html);
@@ -301,17 +337,66 @@ var tmanager = (function () {
     
     function getTiddlerDetailSuccessCallback(data, direction) {
 
+        var workingTiddlerHash = null; 
+
+        if (mySPA.getWorkingTiddler() !== null) {
+            workingTiddlerHash = mySPA.getWorkingTiddler().fields._hash;
+        }
+
         mySPA.setWorkingTiddler(null);
 
         renderTiddlerDetail(data, direction);
 
         if (direction !== null) {
             if (direction === 'deleted') {
-                direction = 'next';
-            }
-            $('#modalCarousel').carousel(direction);
-        }
+                direction = 'next';                
+            } else if (direction === 'saved') {
+                //update the tiddler in the main page body
+                hashCode = data.fields._hash;
+                card_html =  $(cardTemplate(data));
+                
+                if ($('#tiddler-content-' + workingTiddlerHash).html() !== '') {
 
+                    if (data.type === 'image/svg+xml') {
+                        $('#tiddler-content-' + hashCode, card_html).html(data.text);
+                    } else if (data.type === 'image/png' || data.type === 'image/jpeg') {
+                        $('#tiddler-content-' + hashCode, card_html).html('<img src="' + data.uri + '"/>');
+                    } else if (data.render) {
+                        //card_html.find('#tiddler-content-' + hashCode).html(data.render);
+                        $('#tiddler-content-' + hashCode, card_html).html(data.render);
+                    } else {
+                        $('#tiddler-content-' + hashCode, card_html).html('<pre>' + htmlEncode(data.text) + '</pre>');
+                    }
+                }
+
+                if ($('#card_' + workingTiddlerHash + ' .panel .panel-body').hasClass('expand')) {                    
+                    //var tree = $(card_html);
+                    card_html.find('.panel-body').addClass('expand');
+                    $('i.expand-toggle', card_html).removeClass('fa fa-chevron-down fa-2x');
+                    $('i.expand-toggle', card_html).addClass('fa fa-chevron-up fa-2x');
+                    
+
+                    
+                }
+
+                //Add the toggle to the new cards for the expand/collapse chevron
+                card_html.find('[data-toggle=expand-panel]').click(function () {
+                    card_html.find($('i', this).toggleClass('fa fa-chevron-up fa-2x'));
+                    card_html.find($('i', this).toggleClass('fa fa-chevron-down fa-2x'));
+                    card_html.find($('.panel-body', $(this).parent().parent().parent()).toggleClass('expand'));
+                });
+
+                $('#card_' + workingTiddlerHash).replaceWith(card_html);  
+
+                //replace the old tiddler in the tiddler array
+                mySPA.updateTiddlerInResultSet(workingTiddlerHash, data);
+            }
+
+            if (direction === 'next' || direction === 'prev') {
+                $('#modalCarousel').carousel(direction);    
+            }
+
+        }
     }
 
     function getTiddlerDetailForEditSuccessCallback(data, flags) {
@@ -319,6 +404,9 @@ var tmanager = (function () {
 
         editArea.html('<textarea class="form-control" rows="15"></textarea>');
         $('textarea', editArea).val(data.text);
+
+        $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('button-display-toggle');
+        $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('button-display-toggle');
 
         mySPA.setWorkingTiddler(data);
     }
@@ -399,20 +487,20 @@ var tmanager = (function () {
  
     function renderTiddlerDetail(data, direction) {
 
-    	var slideData,
+        var slideData,
             pageHeight,
             windowHeight;
-    	
-    	
+        
+        
         console.log(data);
 
-        if (slideDetail !== null && direction !== null) {
+        if (slideDetail !== null && direction !== null && direction !== 'saved') {
             outgoingSlideDetail = slideDetail;
         }
 
         slideDetail = data;        
 
-        if (direction === null) {
+        if (direction === null || direction === 'saved') {
             slideData = {
                 slide1: data,
                 slide2: outgoingSlideDetail
@@ -678,6 +766,9 @@ var tmanager = (function () {
                 }
             }, true);
         }
+        // else if ($('#card_' + hashCode + ' .panel .panel-body').hasClass('expand') === false) {
+        //    $('#card_' + hashCode + ' .panel .panel-body').addClass('expand');
+        //}
     },
     
     showModalCarousel: function (hashCode) {

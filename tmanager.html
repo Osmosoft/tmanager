@@ -250,13 +250,13 @@
 			                <div class="modal-header">
 			                    <span class="pull-right">
 									{{#contains slide1.permissions "write"}}
-			                    		<a href="#" onClick="tmanager.editTiddler();" role="button" data-toggle="tooltip" data-placement="bottom" title="Edit"><i class="fa fa-edit fa-2x"></i></a>
-			                    		<a href="#" onClick="tmanager.saveTiddler();" role="button" data-toggle="tooltip" data-placement="bottom" title="Save"><i class="fa fa-check-square-o fa-2x"></i></a>
+			                    		<a href="#" onClick="tmanager.editTiddler();" class="edit-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Edit"><i class="fa fa-edit fa-2x"></i></a>
+			                    		<a href="#" onClick="tmanager.saveTiddler();" class="save-button button-display-toggle" role="button" data-toggle="tooltip" data-placement="bottom" title="Save"><i class="fa fa-check-square-o fa-2x"></i></a>
 									{{/contains}}
 			                    	{{#contains slide1.permissions "delete"}}
-										<a href="#" onClick="tmanager.confirmDeleteTiddler();" role="button" data-toggle="tooltip" data-placement="bottom" title="Delete"><i class="fa fa-trash-o fa-2x"></i></a>
+										<a href="#" onClick="tmanager.confirmDeleteTiddler();" class="delete-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Delete"><i class="fa fa-trash-o fa-2x"></i></a>
 									{{/contains}}
-			                    	<a href="#" onClick="" role="button" data-dismiss="modal" data-toggle="tooltip" data-placement="bottom" title="Close"><i class="fa fa-times fa-2x"></i></a>				                    	
+									<a href="#" onClick="" class="close-button" role="button" data-dismiss="modal" data-toggle="tooltip" data-placement="bottom" title="Close"><i class="fa fa-times fa-2x"></i></a>	
 			                    </span>
 			                    <h2 class="text-center" id="tiddlerModalTitle">{{slide1.title}}</h2>
 			                </div>
@@ -306,12 +306,13 @@
 			                <div class="modal-header">
 			                   <span class="pull-right">
 									{{#contains slide2.permissions "write"}}
-			                    		<a href="#" onClick="tmanager.editTiddler();" role="button" data-toggle="tooltip" data-placement="bottom" title="Edit"><i class="fa fa-edit fa-2x"></i></a>
-			                    		<a href="#" onClick="tmanager.saveTiddler();" role="button" data-toggle="tooltip" data-placement="bottom" title="Save"><i class="fa fa-check-square-o fa-2x"></i></a>
+			                    		<a href="#" onClick="tmanager.editTiddler();" class="edit-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Edit"><i class="fa fa-edit fa-2x"></i></a>
+			                    		<a href="#" onClick="tmanager.saveTiddler();" class="save-button button-display-toggle" role="button" data-toggle="tooltip" data-placement="bottom" title="Save"><i class="fa fa-check-square-o fa-2x"></i></a>
 									{{/contains}}
 			                    	{{#contains slide2.permissions "delete"}}
-										<a href="#" onClick="tmanager.confirmDeleteTiddler();" role="button" data-toggle="tooltip" data-placement="bottom" title="Delete"><i class="fa fa-trash-o fa-2x"></i></a>
-									{{/contains}}			                    	<a href="#" onClick="" role="button" data-dismiss="modal" data-toggle="tooltip" data-placement="bottom" title="Close"><i class="fa fa-times fa-2x"></i></a>				                    	
+										<a href="#" onClick="tmanager.confirmDeleteTiddler();" class="delete-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Delete"><i class="fa fa-trash-o fa-2x"></i></a>
+									{{/contains}}
+									<a href="#" onClick="" class="close-button" role="button" data-dismiss="modal" data-toggle="tooltip" data-placement="bottom" title="Close"><i class="fa fa-times fa-2x"></i></a>				
 			                    </span>
 			                    <h2 class="text-center" id="tiddlerModalTitle">{{slide2.title}}</h2>
 			                </div>
