@@ -137,8 +137,8 @@ var tmanager = (function () {
             hashCode;
 
         this.tsStore.save(tiddler, function(response, error){
-            if (response) {
-                console.log('Saved tiddler');
+            if (response) {                
+                showAlert('alert-success', 'The tiddler has been saved.');
                 spa.getTiddlerDetail(workingTiddlerIndex, 'saved', successCallback);
             } else if (error.name === 'SaveError') {
                 console.log('There was a problem saving. Please try again');
@@ -157,7 +157,7 @@ var tmanager = (function () {
         this.tsStore.save(this.configurationTiddler, function(response, error){
             
             if (response) {
-                console.log('Saved tiddler');
+                showAlert('alert-success', 'Updated configuration has been saved.');
                 spa.configurationTiddler = response;
                 successCallback();
             } else if (error.name === 'SaveError') {
@@ -217,7 +217,8 @@ var tmanager = (function () {
         currentModalTiddlerIndex,
         slideDetail,
         outgoingSlideDetail,
-        configuration;    
+        configuration,
+        tiddlerTitles = [];    
 
     /*
      * End of privates
@@ -267,11 +268,10 @@ var tmanager = (function () {
                 tags:  ['tmanager', 'tmanagerconfig'],
                 bag:   new tiddlyweb.Bag(mySPA.space + '_private', mySPA.host)                                     
             });            
-            mySPA.tsStore.add(configTiddler, true);
-            mySPA.tsStore.save(configTiddler, function(tiddler) {
+            mySPA.tsStore.add(configTiddler, true).save(configTiddler, function(tiddler) {
                 mySPA.configurationTiddler = tiddler;
                 updatePresets();
-                renderTiddlersAsCardsCallback(mySPA.tiddlers);
+                renderTiddlersAsCardsCallback(mySPA.tiddlers)
             });
         }
     }
@@ -312,6 +312,9 @@ var tmanager = (function () {
             cards_html = '',
             col_check;
 
+        //Empty the tiddler titles array, but keeping the same reference so that the typeahead control is updated
+        tiddlerTitles.length = 0;
+
         $.each(tiddlers, function () {
             col_check = item % 3;
             this.tiddlerIndex = item;
@@ -320,6 +323,7 @@ var tmanager = (function () {
             }
             //cards_html += '<li class="col-md-4">' + cardTemplate(this) + '</li>';
             cards_html +=  cardTemplate(this);
+            tiddlerTitles.push(this.title);
             item = item + 1;
         });
 
@@ -332,7 +336,6 @@ var tmanager = (function () {
             $('i', this).toggleClass('fa fa-chevron-down fa-2x');
             $('.panel-body', $(this).parent().parent().parent()).toggleClass('expand');
         });
-
     }
     
     function getTiddlerDetailSuccessCallback(data, direction) {
@@ -440,7 +443,7 @@ var tmanager = (function () {
                 } else {
                     $('#tiddlerModal').modal('hide');
                 }
-
+                showAlert('alert-success', 'The tiddler has been deleted.');
             }
         );        
     }
@@ -629,7 +632,96 @@ var tmanager = (function () {
             $('.card .panel-body').closest('div').addClass('expand');
         }
     }
+
+    function showAlert(alertType, alertText) {
+        var alertContainer = $('div.alert-offcanvas'),
+            exisingTop = alertContainer.css('top');
+//find('div.alert').animate('{top:"100%", opacity:0.0, height:"400px"}', 'slow')
+        //console.log(existingStyle);    
+        $('div.alert', alertContainer).addClass(alertType).html(alertText).parent().fadeIn(500).delay(1000).animate(
+            {'top':'-=100px', 'opacity':'0'},
+            '2000', function() {                            
+                alertContainer.css({ 'top': exisingTop, 'opacity': '1', 'display': 'none' });
+                $('div.alert', this).removeClass(alertType);
+            }
+        );
+        
+        //$('.alert-offcanvas .alert').addClass(alertType).html(alertText).delay(2000).removeClass(alertType);        
+    }
     
+    function scrollToID(id, speed){
+        var offSet = 40,
+            scrollToObject = $(id),
+            currentObjLocation = (scrollToObject.offset().top - offSet),
+            currentScrollLocation = $('#main').scrollTop(),
+            //targetOffset2 = $('#main').scrollTop() + (scrollToObject.offset().top - offSet),
+            targetOffset = currentScrollLocation + currentObjLocation;
+
+        //console.log('div position top = ' + $(id).position().top + ', div offset = ' + $(id).offset().top + ', offset top = ' + $(id).offset().top);
+
+        console.log(currentObjLocation);
+        console.log(targetOffset);
+        console.log(currentScrollLocation);
+        
+        if (targetOffset != currentScrollLocation) {
+            //Scroll and animate
+            $('#main').animate({scrollTop:targetOffset}, speed, function () {
+                $(scrollToObject).fadeTo(100, 0.1).fadeTo(200, 1.0).fadeTo(100, 0.1).fadeTo(200, 1.0);
+            });
+        } else {
+            //Just animate
+            $(scrollToObject).fadeTo(100, 0.1).fadeTo(200, 1.0).fadeTo(100, 0.1).fadeTo(200, 1.0);
+        }
+    }
+
+    function scrollToCard(cardTitle, fullMatch){
+        var searchStr = cardTitle.toUpperCase(),
+            regEx,
+            divID = null;
+
+        if (fullMatch) {
+            regEx = "^" + searchStr + "$";
+        } else {
+            regEx = "^" + searchStr;
+        }
+
+        $.each(mySPA.tiddlers, function(index, tiddler) {
+            if (tiddler.title.toUpperCase().match(regEx)) {
+                divID = '#card_' + tiddler.fields._hash;
+                console.log(tiddler.title);
+                return false;
+            }
+        });
+
+        if (divID != null) {
+            scrollToID(divID, 2000);
+        }
+    }
+
+    function substringMatcher(strs) {
+      return function findMatches(q, cb) {
+        var matches, substrRegex;
+     
+        // an array that will be populated with substring matches
+        matches = [];
+     
+        // regex used to determine if a string contains the substring `q`
+        substrRegex = new RegExp(q, 'i');
+     
+        // iterate through the pool of strings and for any string that
+        // contains the substring `q`, add it to the `matches` array
+        $.each(strs, function(i, str) {
+          if (substrRegex.test(str)) {
+            // the typeahead jQuery plugin expects suggestions to a
+            // JavaScript object, refer to typeahead docs for more info
+            matches.push({ value: str });
+          }
+        });
+     
+        cb(matches);
+      };
+    };
+
     /*
      * End of private functions
      */
@@ -660,7 +752,7 @@ var tmanager = (function () {
                 queryText = queryText.concat('+').concat(authorText).concat(' ');
             }
 
-            mySPA.getTiddlers(spaceText, queryText, renderTiddlersAsCardsCallback, retrievalErrorCallback);
+            mySPA.getTiddlers(spaceText, queryText, renderTiddlersAsCardsCallback, retrievalErrorCallback);            
 
             event.preventDefault();
         });
@@ -684,10 +776,39 @@ var tmanager = (function () {
         //Configure the data toggle for the side bar
         $('[data-toggle=offcanvas]').click(function () {
             $('.row-offcanvas').toggleClass('active');
+            $('.alert-offcanvas').toggleClass('active');
+            console.log($('.alert-offcanvas'));
             $('.sidebar-toggle i').toggleClass('fa fa-chevron-right');
             $('.sidebar-toggle i').toggleClass('fa fa-chevron-left');
         });
 
+        //The scrollTo entry box
+
+        $('#scrollTo').typeahead({
+            hint: true,
+            highlight: true,
+            minLength: 1
+        },
+        {
+            name: 'tiddlerTitles',
+            displayKey: 'value',
+            source: substringMatcher(tiddlerTitles)
+        });
+
+        $('#scrollTo').bind('typeahead:selected', function(obj, datum, name) {            
+            scrollToCard(datum.value, true);
+            $('#scrollTo').typeahead('close');
+        });
+
+        $('#scrollTo').keypress(function (e) {
+            if (e.which == 13) {
+                scrollToCard($('#scrollTo').val(), false);                
+            }
+            $('#scrollTo').typeahead('close');
+        });
+
+        $('.twitter-typeahead').css('vertical-align', 'middle');
+    
         //Configure the data toggle for the expand/collapse all button
         $('[data-toggle=expand]').click(function () {
             $('.sidebar-right-toggle i').toggleClass('fa fa-expand');
@@ -746,7 +867,7 @@ var tmanager = (function () {
         tiddlerModalTemplate = Handlebars.compile(tiddlerModalTemplateScript);        
     },
     
-    getCardBody: function (hashCode) {    
+    getCardBody: function (hashCode) {        
         if ($('#tiddler-content-' + hashCode).html() === '') {
             
         	var tiddlerIndex = getTiddlerIndexFromHash(hashCode),  
@@ -764,7 +885,7 @@ var tmanager = (function () {
                 } else {
                     $('#tiddler-content-' + hashCode).html('<pre>' + htmlEncode(tiddler.text) + '</pre>');
                 }
-            }, true);
+            }, true);            
         }
         // else if ($('#card_' + hashCode + ' .panel .panel-body').hasClass('expand') === false) {
         //    $('#card_' + hashCode + ' .panel .panel-body').addClass('expand');

@@ -6,7 +6,7 @@
 	<meta charset="utf-8">
 	<title>tManager</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-
+	
 	<link rel="stylesheet" href="bootstrap.min.css">
 	<link rel="stylesheet" href="font-awesome.min.css">
 	<link rel="stylesheet" href="tmanager.css">
@@ -86,14 +86,19 @@
 		<!--main-->
 		<div id="main">
 
-			<div class="col-md-12 sidebar-toggle">
-				<p>
-					<button type="button" class="btn btn-primary btn-xl"
-						data-toggle="offcanvas" data-toggle="tooltip"
-						data-placement="bottom" title="Show/Hide Search Panel">
-						<i class="fa fa-chevron-right"></i>
-					</button>
-				</p>
+			<div class="sidebar-toggle">
+				<div class="form-group">			        
+		            <div class="form-inline">
+       					<div class="form-group">           		
+       						<button type="button" class="btn btn-primary btn-xl"
+								data-toggle="offcanvas" data-toggle="tooltip"
+								data-placement="bottom" title="Show/Hide Search Panel">
+								<i class="fa fa-chevron-right"></i>
+							</button>
+           					<input type="text" id="scrollTo" class="typeahead form-control" placeholder="Scroll to..."/>
+		                </div>
+		            </div>
+			    </div>
 			</div>
 
 			<div id="sidebar-right" class="sidebar-right-toggle">
@@ -105,6 +110,7 @@
 			</div>
 
 			<div class="container-full">
+
 				<div id="cards"></div>
 				<!--/row-->
 
@@ -112,9 +118,14 @@
 				<div class="clearfix"></div>
 			</div>
 
+			<div class="alert-offcanvas alert-offcanvas-left">
+				<div class="alert" role="alert">This is a test alert message.</div>
+			</div>
+
 		</div>
 
 		<!--/main-->
+
 
 	</div>
 	<!--row-offcanvas row-offcanvas-left-->
@@ -369,6 +380,7 @@
 	<script type="text/javascript" src="/bags/common/tiddlers/chrjs-store.js"></script>
 	<script type="text/javascript" src="bootstrap.min.js"></script>
 	<script type="text/javascript" src="handlebars.min-v1.3.0.js"></script>
+	<script type="text/javascript" src="typeahead.bundle.min.js"></script>
 	<script type="text/javascript" src="tmanager.js"></script>
 
 </body>
