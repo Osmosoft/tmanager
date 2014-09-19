@@ -221,6 +221,7 @@ body {
     padding-left: 0px;
     position: fixed;
     z-index: 1000;
+    width: 300px;
 }
 
 .alert-offcanvas {
@@ -450,8 +451,12 @@ span.twitter-typeahead {
     margin: 0;
 }
 
-
-
+.twitter-typeahead {
+    width: 80%;  
+}
+.twitter-typeahead .tt-hint, .twitter-typeahead .tt-input, .tt-dropdown-menu {
+  width: 100%;  
+}
 
 span.twitter-typeahead .tt-suggestion > p {
   display: block;
@@ -493,6 +498,11 @@ span.twitter-typeahead .tt-suggestion.tt-cursor {
   #tiddlerModal .modal-body .col-md-12 {
     max-height: 500px;
   }
+
+  .sidebar-toggle {
+    width: 450px;
+  }
+
 }
 @media (min-width:641px) and (orientation:portrait) { 
   /* iphone 5, portrait e-readers (Nook/Kindle), smaller tablets @ 600 or @ 640 wide. */
@@ -520,6 +530,9 @@ span.twitter-typeahead .tt-suggestion.tt-cursor {
   /* iphone 5, portrait e-readers (Nook/Kindle), smaller tablets @ 600 or @ 640 wide. */ 
   #tiddlerModal .modal-body .col-md-12 {
     max-height:80px;
+  }
+  .sidebar-toggle {
+    width: 450px;
   }
 }
 @media (min-width:641px) and (orientation:landscape) { 
