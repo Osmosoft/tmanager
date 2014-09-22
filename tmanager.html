@@ -8,6 +8,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 	
 	<link rel="stylesheet" href="bootstrap.min.css">
+	<link rel="stylesheet" href="bootstrapValidator.min.css">
 	<link rel="stylesheet" href="font-awesome.min.css">
 	<link rel="stylesheet" href="tmanager.css">
 
@@ -166,47 +167,41 @@
 		role="dialog" aria-labelledby="saveConfirmModal" aria-hidden="true">
 		<div class="modal-dialog">
 			<div class="modal-content">
-				<div class="modal-header">
-					<h2 class="modal-title" id="myModalLabel">Save Preset</h2>
-				</div>
-				<div class="modal-body">
-					<ul class="nav">
-						<li>
+				<div id="presetSaveForm">
+					<div class="modal-header">
+						<h2 class="modal-title" id="myModalLabel">Save Preset</h2>
+					</div>
+					<div class="modal-body">					
+						<div class="form-group">
 							<div class="input-group">
-								<span class="input-group-addon"><i class="fa fa-heart fa-1x"></i></span><input type="text" class="form-control" id="spPresetName" placeholder="Preset name"/>
+								<span class="input-group-addon"><i class="fa fa-heart fa-1x"></i></span><input type="text" class="form-control" name="spPresetName" id="spPresetName" placeholder="Preset name"/>
 							</div>
-						</li>
-						<li>
+						</div>
+						<div class="form-group">
 							<div class="input-group">
-								<span class="input-group-addon"><i class="fa fa-globe fa-1x"></i></span><input type="text" class="form-control" id="spSpace" placeholder="Space name"/>
+								<span class="input-group-addon"><i class="fa fa-globe fa-1x"></i></span><input type="text" class="form-control" name="spSpace"  id="spSpace" placeholder="Space name"/>
 							</div>
-						</li>
-<!-- 						<li> -->
-<!-- 							<div class="input-group"> -->
-<!-- 								<span class="input-group-addon"><i class="fa fa-briefcase fa-1x"></i></span><input type="text" class="form-control" id="spBag" placeholder="Bag"/> -->
-<!-- 							</div> -->
-<!-- 						</li> -->
-						<li>
+						</div>
+						<div class="form-group">
 							<div class="input-group">
-								<span class="input-group-addon"><i class="fa fa-tag fa-1x"></i></span><input type="text" class="form-control" id="spTag" placeholder="Tag"/>
+								<span class="input-group-addon"><i class="fa fa-tag fa-1x"></i></span><input type="text" class="form-control" name="spTag"  id="spTag" placeholder="Tag"/>
 							</div>
-						</li>
-						<li>
+						</div>
+						<div class="form-group">
 							<div class="input-group">
-								<span class="input-group-addon"><i class="fa fa-dot-circle-o fa-1x"></i></span><input type="text" class="form-control" id="spTitle" placeholder="Title"/>
+								<span class="input-group-addon"><i class="fa fa-dot-circle-o fa-1x"></i></span><input type="text" class="form-control" name="spTitle"  id="spTitle" placeholder="Title"/>
 							</div>
-						</li>
-						<li>
+						</div>
+						<div class="form-group">
 							<div class="input-group">
-								<span class="input-group-addon"><i class="fa fa-user fa-1x"></i></span><input type="text" class="form-control" id="spAuthor" placeholder="Author"/>
+								<span class="input-group-addon"><i class="fa fa-user fa-1x"></i></span><input type="text" class="form-control" name="spAuthor" id="spAuthor" placeholder="Author"/>
 							</div>
-						</li>
-					</ul>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-					<button id="btnSavePreset" type="button" class="btn btn-primary"
-						data-dismiss="modal">Save</button>
+						</div>					
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn" data-dismiss="modal">Cancel</button>
+						<button type="button" class="btn btn-default btn-primary" id="btnSavePreset">Save</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -379,6 +374,7 @@
 	<script type="text/javascript" src="/bags/tiddlyspace/tiddlers/chrjs"></script>
 	<script type="text/javascript" src="/bags/common/tiddlers/chrjs-store.js"></script>
 	<script type="text/javascript" src="bootstrap.min.js"></script>
+	<script type="text/javascript" src="bootstrapValidator.min.js"></script>
 	<script type="text/javascript" src="handlebars.min-v1.3.0.js"></script>
 	<script type="text/javascript" src="typeahead.bundle.min.js"></script>
 	<script type="text/javascript" src="tmanager.js"></script>

@@ -141,9 +141,9 @@ var tmanager = (function () {
                 showAlert('alert-success', 'The tiddler has been saved.');
                 spa.getTiddlerDetail(workingTiddlerIndex, 'saved', successCallback);
             } else if (error.name === 'SaveError') {
-                console.log('There was a problem saving. Please try again');
+                showAlert('alert-danger', 'There was a problem saving. Please try again');
             } else if (error.name === 'EmptyError') {
-                console.log('There is nothing to save');
+                showAlert('alert-info', 'There was nothing to save.');
             }            
         });
     };
@@ -158,12 +158,12 @@ var tmanager = (function () {
             
             if (response) {
                 showAlert('alert-success', 'Updated configuration has been saved.');
-                spa.configurationTiddler = response;
+                spa.configurationTiddler = response;                
                 successCallback();
             } else if (error.name === 'SaveError') {
-                console.log('There was a problem saving. Please try again');
+                showAlert('alert-danger', 'There was a problem saving the configuration. Please try again');
             } else if (error.name === 'EmptyError') {
-                console.log('There is nothing to save');
+                showAlert('alert-info', 'There was nothing to save.');
             }
             
         });
@@ -180,9 +180,9 @@ var tmanager = (function () {
             if (response) {
                 successCallback();
             } else if (error.name === 'RemoveError') {
-                console.log('There was a problem deleting. Please try again');
+                showAlert('alert-danger', 'There was a problem deleting. Please try again');
             } else if (error.name === 'EmptyError') {
-                console.log('There is nothing to delete');
+                showAlert('alert-info', 'There was nothing to delete.');
             }
         });
     };
@@ -464,6 +464,13 @@ var tmanager = (function () {
     /*
      * Private functions
      */
+     function closePresetModalAndUpdatePresets() {        
+        $('#savePresetModal').modal('hide');
+        updatePresets();
+
+        $('#presetItems').val($('#spPresetName').val());
+        updateSearchForm();
+     }
     function updatePresets() {
         console.log(mySPA.configurationTiddler);
         configuration = JSON.parse(mySPA.configurationTiddler.text);
@@ -579,45 +586,50 @@ var tmanager = (function () {
     }
 
     function savePreset() {
-        var saveName = $('#spPresetName').val(),
+        var saveName = $('#spPresetName').val().trim(),
             existingPreset = false,
             newPreset;
+    
+        if ($('#presetSaveForm').data('bootstrapValidator').validate().isValid()) {
 
-        $.each(configuration.presets, function(index, preset){
-            console.log(preset.name + ' ' + index);
-            if (saveName === preset.name) {
-                existingPreset = true;
-                preset.space = $('#spSpace').val();
-                //preset.bag = $('#spBag').val();
-                preset.tag  = $('#spTag').val();
-                preset.title = $('#spTitle').val();
-                preset.author = $('#spAuthor').val();            
-            }
-        });
+            $.each(configuration.presets, function(index, preset){
+                console.log(preset.name + ' ' + index);
+                if (saveName === preset.name) {
+                    existingPreset = true;
+                    preset.space = $('#spSpace').val();
+                    //preset.bag = $('#spBag').val();
+                    preset.tag  = $('#spTag').val();
+                    preset.title = $('#spTitle').val();
+                    preset.author = $('#spAuthor').val();            
+                }
+            });
 
-        if (!existingPreset) {
-            //newPreset = new Preset(saveName, $('#spSpace').val(), $('#spBag').val(), $('#spTag').val(), $('#spTitle').val(), $('#spAuthor').val());
-            newPreset = new Preset(saveName, $('#spSpace').val(), $('#spTag').val(), $('#spTitle').val(), $('#spAuthor').val());
-            configuration.presets.push(newPreset);
+            if (!existingPreset) {
+                //newPreset = new Preset(saveName, $('#spSpace').val(), $('#spBag').val(), $('#spTag').val(), $('#spTitle').val(), $('#spAuthor').val());
+                newPreset = new Preset(saveName, $('#spSpace').val(), $('#spTag').val(), $('#spTitle').val(), $('#spAuthor').val());
+                configuration.presets.push(newPreset);
+            };
+
+            mySPA.saveConfiguration(configuration, closePresetModalAndUpdatePresets);
+
+        } else {
+            console.log('xxx');
         };
-
-        mySPA.saveConfiguration(configuration, updatePresets);
-
-        console.log(JSON.stringify(configuration.presets));
     }
 
     function confirmSavePreset() {    
         var options = {
-            'backdrop' : 'static'
-        };
-
-        $('#spPresetName').val($('#presetItems').val());
-        $('#spSpace').val($('#space').val());
+                'backdrop' : 'static'
+            },
+            presetForm = $('#presetSaveForm');
+        
+        $('#spPresetName', presetForm).val($('#presetItems').val());
+        $('#spSpace', presetForm).val($('#space').val());
         //$('#spBag').val($('#bag').val());
-        $('#spTag').val($('#tag').val());
-        $('#spTitle').val($('#title').val());
-        $('#spAuthor').val($('#author').val());
-        $('#savePresetModal').modal(options);
+        $('#spTag', presetForm).val($('#tag').val());
+        $('#spTitle', presetForm).val($('#title').val());
+        $('#spAuthor', presetForm).val($('#author').val());
+        $('#savePresetModal').modal(options);        
     }
 
     function expandCollapseAll() {
@@ -820,10 +832,6 @@ var tmanager = (function () {
             deleteTiddler();
         });
 
-        $('#btnSavePreset').click(function() {
-            savePreset();
-        });
-
         //Attach the save preset function
         $('#save-preset').click(function () {
             confirmSavePreset();
@@ -832,7 +840,57 @@ var tmanager = (function () {
         $('#presetItems').on('change', function () {
             updateSearchForm();
         });
-        
+
+
+        $('#btnSavePreset').click(function () {
+            savePreset();
+        });
+
+        $('#presetSaveForm input').keypress(function (e) {
+            if (e.which == 13) {
+                $('#btnSavePreset').trigger('click');
+            }
+        });
+
+        $('#presetSaveForm').bootstrapValidator({
+            message: 'This value is not valid',
+            feedbackIcons: {
+                valid: 'fa fa-check-square',
+                invalid: 'fa fa-exclamation-triangle',
+                validating: 'fa fa-cog'
+            },
+            fields: {
+                spPresetName: {
+                    validators: {
+                        notEmpty: {
+                            message: 'The preset name is required'
+                        }
+                    }
+                },
+                spSpace: {                    
+                    validators: {
+                    }
+                },
+                spTag: {
+                    validators: {                        
+                    }
+                },
+                spTitle: {
+                    validators: {                        
+                    }
+                },
+                spAuthor: {
+                    validators: {                        
+                    }
+                }
+            }
+        });
+
+        $('#savePresetModal').on('shown.bs.modal', function() {
+            $('#presetSaveForm').bootstrapValidator('resetForm');
+            $('#spPresetName').focus();
+        });
+
     }
     
     /*
