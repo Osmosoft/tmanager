@@ -480,8 +480,7 @@ var tmanager = (function () {
         $.each(configuration.presets, function () {
             $('#presetItems').append('<option value="' + this.name + '">' + this.name + '</option>');
         });    
-    }
-    
+    }    
     function updateSearchForm() {
         var selectedPreset = $('#presetItems').val();
         $.each(configuration.presets, function () {
@@ -493,6 +492,10 @@ var tmanager = (function () {
                 $('#author').val(this.author);
             }
         });
+    }
+    function resetSearchForm() {
+        $('#presetItems')[0].selectedIndex = 0;        
+        $('#sidebar-form input').val('');        
     }
  
     function renderTiddlerDetail(data, direction) {
@@ -835,12 +838,11 @@ var tmanager = (function () {
         //Attach the save preset function
         $('#save-preset').click(function () {
             confirmSavePreset();
-        });
+        });        
 
         $('#presetItems').on('change', function () {
             updateSearchForm();
         });
-
 
         $('#btnSavePreset').click(function () {
             savePreset();
@@ -889,6 +891,10 @@ var tmanager = (function () {
         $('#savePresetModal').on('shown.bs.modal', function() {
             $('#presetSaveForm').bootstrapValidator('resetForm');
             $('#spPresetName').focus();
+        });
+
+        $('#reset-search-form').click(function () {
+            resetSearchForm();
         });
 
     }
