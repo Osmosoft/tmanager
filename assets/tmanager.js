@@ -336,6 +336,14 @@ var tmanager = (function () {
             $('i', this).toggleClass('fa fa-chevron-down fa-2x');
             $('.panel-body', $(this).parent().parent().parent()).toggleClass('expand');
         });
+
+        //Resert the overall expand and collapse button
+        if ($('.sidebar-right-toggle i').hasClass('fa-compress')) {
+            $('.sidebar-right-toggle i').toggleClass('fa fa-expand');
+            $('.sidebar-right-toggle i').toggleClass('fa fa-compress');
+        }
+
+        checkScrollbarVisibility();
     }
     
     function getTiddlerDetailSuccessCallback(data, direction) {
@@ -377,9 +385,6 @@ var tmanager = (function () {
                     card_html.find('.panel-body').addClass('expand');
                     $('i.expand-toggle', card_html).removeClass('fa fa-chevron-down fa-2x');
                     $('i.expand-toggle', card_html).addClass('fa fa-chevron-up fa-2x');
-                    
-
-                    
                 }
 
                 //Add the toggle to the new cards for the expand/collapse chevron
@@ -415,21 +420,34 @@ var tmanager = (function () {
     }
 
     function deleteTiddlerSuccessCallback() {
-        console.log('Tiddler deleted succesfully.');
+        var removedTiddlerHash,
+            removedTiddlerTitle,
+            cardObject;
 
         $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content').fadeOut('fast').queue(            
             function() {
 
                 //Update the main page to reflect the tiddler has been removed
                 removedTiddlerHash = mySPA.tiddlers[currentModalTiddlerIndex].fields._hash;
-                $('#card_' + removedTiddlerHash ).remove();
-                $('.cardclearfix').remove();
+                removedTiddlerTitle = mySPA.tiddlers[currentModalTiddlerIndex].title;
 
-                $('.card').each(function( index, card){
-                    if (index % 3 === 0) {                
-                        $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
-                    }
+                cardObject = $('#card_' + removedTiddlerHash);
+
+                cardObject.fadeTo(1000, 0, function() {
+
+                    cardObject.remove();
+
+                    $('.cardclearfix').remove();
+
+                    $('.card').each(function( index, card) {
+                        if (index % 3 === 0) {                
+                            $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
+                        }
+                    });
+
                 });
+
+                tiddlerTitles.splice(tiddlerTitles.indexOf(removedTiddlerTitle), 1);
 
                 if (currentModalTiddlerIndex === mySPA.tiddlers.length - 1) {
                     mySPA.tiddlers.splice(currentModalTiddlerIndex, 1);
@@ -445,14 +463,17 @@ var tmanager = (function () {
                 }
                 showAlert('alert-success', 'The tiddler has been deleted.');
             }
-        );        
+        );
+        checkScrollbarVisibility();   
     }
 
     function getTiddlerDetailErrorCallback(error) {
+        showAlert('alert-danger', 'Error retrieving data: ' + error);
         console.log('Error retrieving data: ' + error);
     }
     
     function retrievalErrorCallback(error) {
+        showAlert('alert-danger', 'Error retrieving data: ' + error);
         console.log('Error retrieving data: ' + error);
     }
     
@@ -472,7 +493,6 @@ var tmanager = (function () {
         updateSearchForm();
      }
     function updatePresets() {
-        console.log(mySPA.configurationTiddler);
         configuration = JSON.parse(mySPA.configurationTiddler.text);
 
         $('#presetItems').empty().append('<option value="" disabled selected>Preset</option>');
@@ -503,9 +523,6 @@ var tmanager = (function () {
         var slideData,
             pageHeight,
             windowHeight;
-        
-        
-        console.log(data);
 
         if (slideDetail !== null && direction !== null && direction !== 'saved') {
             outgoingSlideDetail = slideDetail;
@@ -595,8 +612,7 @@ var tmanager = (function () {
     
         if ($('#presetSaveForm').data('bootstrapValidator').validate().isValid()) {
 
-            $.each(configuration.presets, function(index, preset){
-                console.log(preset.name + ' ' + index);
+            $.each(configuration.presets, function(index, preset) {
                 if (saveName === preset.name) {
                     existingPreset = true;
                     preset.space = $('#spSpace').val();
@@ -615,8 +631,6 @@ var tmanager = (function () {
 
             mySPA.saveConfiguration(configuration, closePresetModalAndUpdatePresets);
 
-        } else {
-            console.log('xxx');
         };
     }
 
@@ -673,10 +687,6 @@ var tmanager = (function () {
             targetOffset = currentScrollLocation + currentObjLocation;
 
         //console.log('div position top = ' + $(id).position().top + ', div offset = ' + $(id).offset().top + ', offset top = ' + $(id).offset().top);
-
-        console.log(currentObjLocation);
-        console.log(targetOffset);
-        console.log(currentScrollLocation);
         
         if (targetOffset != currentScrollLocation) {
             //Scroll and animate
@@ -703,7 +713,6 @@ var tmanager = (function () {
         $.each(mySPA.tiddlers, function(index, tiddler) {
             if (tiddler.title.toUpperCase().match(regEx)) {
                 divID = '#card_' + tiddler.fields._hash;
-                console.log(tiddler.title);
                 return false;
             }
         });
@@ -736,6 +745,39 @@ var tmanager = (function () {
         cb(matches);
       };
     };
+
+    function hasVerticalScroll(node){
+        if(node == undefined){
+            if(window.innerHeight){
+                return document.body.offsetHeight> innerHeight;
+            }
+            else {
+                return  document.documentElement.scrollHeight > 
+                    document.documentElement.offsetHeight ||
+                    document.body.scrollHeight>document.body.offsetHeight;
+            }
+        }
+        else {
+            return node.scrollHeight> node.offsetHeight;
+        }
+    }
+
+    function checkScrollbarVisibility() {
+        if (hasVerticalScroll($('#main').get(0))) {
+            var sidebarright = $('#sidebar-right');
+            if (!(sidebarright).hasClass('sidebar-right-scrollbar-visible-toggle')) { 
+                sidebarright.addClass('sidebar-right-scrollbar-visible-toggle');
+                sidebarright.removeClass('sidebar-right-scrollbar-not-visible-toggle');                                      
+            };
+        } else {
+            var sidebarright = $('#sidebar-right');
+            if (!(sidebarright).hasClass('sidebar-right-scrollbar-not-visible-toggle')) {
+                sidebarright.addClass('sidebar-right-scrollbar-not-visible-toggle');
+                sidebarright.removeClass('sidebar-right-scrollbar-visible-toggle');
+            }                
+        };
+    }
+
 
     /*
      * End of private functions
@@ -792,7 +834,6 @@ var tmanager = (function () {
         $('[data-toggle=offcanvas]').click(function () {
             $('.row-offcanvas').toggleClass('active');
             $('.alert-offcanvas').toggleClass('active');
-            console.log($('.alert-offcanvas'));
             $('.sidebar-toggle i').toggleClass('fa fa-chevron-right');
             $('.sidebar-toggle i').toggleClass('fa fa-chevron-left');
         });
@@ -897,6 +938,9 @@ var tmanager = (function () {
             resetSearchForm();
         });
 
+        $( window ).resize(function() {
+            checkScrollbarVisibility();
+        });
     }
     
     /*
@@ -937,9 +981,7 @@ var tmanager = (function () {
         	var tiddlerIndex = getTiddlerIndexFromHash(hashCode),  
                 tiddler = mySPA.tiddlers[tiddlerIndex];
             
-            console.log(tiddler.title);
             mySPA.tsStore.get(tiddler, function (tiddler) {
-                console.log(tiddler);
                 if (tiddler.type === 'image/svg+xml') {
                     $('#tiddler-content-' + hashCode).html(tiddler.text);
                 } else if (tiddler.type === 'image/png' || tiddler.type === 'image/jpeg') {
@@ -949,7 +991,10 @@ var tmanager = (function () {
                 } else {
                     $('#tiddler-content-' + hashCode).html('<pre>' + htmlEncode(tiddler.text) + '</pre>');
                 }
+                checkScrollbarVisibility();
             }, true);            
+        } else {
+            checkScrollbarVisibility();
         }
         // else if ($('#card_' + hashCode + ' .panel .panel-body').hasClass('expand') === false) {
         //    $('#card_' + hashCode + ' .panel .panel-body').addClass('expand');

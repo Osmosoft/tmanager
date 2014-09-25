@@ -179,12 +179,18 @@ body {
   padding-top: 0px;
 }
 #sidebar-right {
-  position: absolute;
-  right: 0px;
+  position: absolute;  
   top: 0px;
   z-index: 1000;
 }
-.sidebar-right-toggle {
+#sidebar-right:hover {
+  opacity:1;
+}
+.sidebar-right-scrollbar-visible-toggle {
+  right: 20px;
+}
+.sidebar-right-scrollbar-not-visible-toggle {
+  right: 0px;
 }
 /*
  * off Canvas sidebar
