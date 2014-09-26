@@ -243,13 +243,16 @@ var tmanager = (function () {
     function getInitialTiddlersCallback() {        
         var configurationExists = false,
             configurationTiddlerName ='tManagerConfig',
-            configurationExists = false;
+            configurationExists = false,
+            regEx = /(\/\/)([^.]*)(\.)/;
 
         $.each(mySPA.tiddlers, function (index) {
             if (this.title === configurationTiddlerName) {
-                configurationExists = true;
+                if (mySPA.space === this.uri.match(regEx)[2]) {
+                    configurationExists = true;
+                }
                 return false;
-            }
+            }            
         });
 
         //Get or create the config tiddler 

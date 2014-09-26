@@ -12,8 +12,15 @@
 	<link rel="stylesheet" href="font-awesome.min.css">
 	<link rel="stylesheet" href="tmanager.css">
 
-	<!--[if lt IE 9]>
-	   <script src="gn_html5shim.js"></script>
+
+	<!--[if IE]>
+		<script type="text/javascript" src="/bags/common/tiddlers/jquery.js"></script>
+		<script type="text/javascript" src="/bags/tiddlyspace/tiddlers/chrjs"></script>
+		<script type="text/javascript" src="/bags/common/tiddlers/chrjs-store.js"></script>
+    <![endif]-->
+
+	<!--[if lte IE 9]>
+	   <script src="html5shim.js"></script>	   
     <![endif]-->
 
 </head>
@@ -373,10 +380,14 @@
     </script>
 
 
-	<!-- script references -->
-	<script type="text/javascript" src="/bags/common/tiddlers/jquery.js"></script>
-	<script type="text/javascript" src="/bags/tiddlyspace/tiddlers/chrjs"></script>
-	<script type="text/javascript" src="/bags/common/tiddlers/chrjs-store.js"></script>
+	<!-- script references -->			
+	<!--[if !IE]> -->
+		<script type="text/javascript" src="/bags/common/tiddlers/jquery.js"></script>
+		<script type="text/javascript" src="/bags/tiddlyspace/tiddlers/chrjs"></script>
+		<script type="text/javascript" src="/bags/common/tiddlers/chrjs-store.js"></script>
+	<!-- <![endif]-->
+
+
 	<script type="text/javascript" src="bootstrap.min.js"></script>
 	<script type="text/javascript" src="bootstrapValidator.min.js"></script>
 	<script type="text/javascript" src="handlebars.min-v1.3.0.js"></script>
