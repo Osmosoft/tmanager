@@ -249,6 +249,7 @@ var tmanager = (function () {
         $.each(mySPA.tiddlers, function (index) {
             if (this.title === configurationTiddlerName) {
                 if (mySPA.space === this.uri.match(regEx)[2]) {
+                    //The configuration tiddler exists within this space.
                     configurationExists = true;
                 }
                 return false;
@@ -270,7 +271,7 @@ var tmanager = (function () {
                 text:  '{"presets":[]}',
                 tags:  ['tmanager', 'tmanagerconfig'],
                 bag:   new tiddlyweb.Bag(mySPA.space + '_private', mySPA.host)                                     
-            });            
+            });
             mySPA.tsStore.add(configTiddler, true).save(configTiddler, function(tiddler) {
                 mySPA.configurationTiddler = tiddler;
                 updatePresets();
@@ -1036,7 +1037,7 @@ var tmanager = (function () {
         $('#deleteConfirmModal .modal-dialog .modal-content .modal-body .tiddlerName').html('<h2>' + mySPA.tiddlers[currentModalTiddlerIndex].title + '</h2>');
 
         $('#deleteConfirmModal').modal(options);
-    },
+    }
    
   };
 })();
