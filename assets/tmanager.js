@@ -134,7 +134,7 @@ var tmanager = (function () {
 
         var spa = this,
             card_html,
-            hashCode;
+            revision;
 
         this.tsStore.save(tiddler, function(response, error){
             if (response) {                
@@ -187,6 +187,14 @@ var tmanager = (function () {
         });
     };
 
+    SPA.prototype.addTiddler = function(name, type, defaultText, successCallback) {
+        var tiddler = new tiddlyweb.Tiddler(name);
+        tiddler.type = type;
+        tiddler.text = defaultText; 
+        this.tsStore.add(tiddler, true);
+        successCallback();
+    }
+
     SPA.prototype.getWorkingTiddler = function() {
         return this.workingTiddler;
     };
@@ -195,10 +203,10 @@ var tmanager = (function () {
         this.workingTiddler = tiddler;
     };
 
-    SPA.prototype.updateTiddlerInResultSet = function(tiddlerToReplaceHash, newTiddler) {
+    SPA.prototype.updateTiddlerInResultSet = function(tiddlerToReplaceRevision, newTiddler) {
         var indexPos = -1;
         $.each(this.tiddlers, function (index, tiddler) {
-            if (tiddler.fields._hash === tiddlerToReplaceHash) {
+            if (tiddler.revision === tiddlerToReplaceRevision) {
                 indexPos = index
                 return false;
             }
@@ -327,7 +335,7 @@ var tmanager = (function () {
             }
             //cards_html += '<li class="col-md-4">' + cardTemplate(this) + '</li>';
             cards_html +=  cardTemplate(this);
-            tiddlerTitles.push(this.title);
+            tiddlerTitles.push({title:this.title, id:this.revision});
             item = item + 1;
         });
 
@@ -346,16 +354,15 @@ var tmanager = (function () {
             $('.sidebar-right-toggle i').toggleClass('fa fa-expand');
             $('.sidebar-right-toggle i').toggleClass('fa fa-compress');
         }
-
         checkScrollbarVisibility();
     }
     
     function getTiddlerDetailSuccessCallback(data, direction) {
 
-        var workingTiddlerHash = null; 
+        var workingTiddlerRevision = null; 
 
         if (mySPA.getWorkingTiddler() !== null) {
-            workingTiddlerHash = mySPA.getWorkingTiddler().fields._hash;
+            workingTiddlerRevision = mySPA.getWorkingTiddler().revision;
         }
 
         mySPA.setWorkingTiddler(null);
@@ -367,24 +374,24 @@ var tmanager = (function () {
                 direction = 'next';                
             } else if (direction === 'saved') {
                 //update the tiddler in the main page body
-                hashCode = data.fields._hash;
+                revision = data.revision;
                 card_html =  $(cardTemplate(data));
                 
-                if ($('#tiddler-content-' + workingTiddlerHash).html() !== '') {
+                if ($('#tiddler-content-' + workingTiddlerRevision).html() !== '') {
 
                     if (data.type === 'image/svg+xml') {
-                        $('#tiddler-content-' + hashCode, card_html).html(data.text);
+                        $('#tiddler-content-' + revision, card_html).html(data.text);
                     } else if (data.type === 'image/png' || data.type === 'image/jpeg') {
-                        $('#tiddler-content-' + hashCode, card_html).html('<img src="' + data.uri + '"/>');
+                        $('#tiddler-content-' + revision, card_html).html('<img src="' + data.uri + '"/>');
                     } else if (data.render) {
-                        //card_html.find('#tiddler-content-' + hashCode).html(data.render);
-                        $('#tiddler-content-' + hashCode, card_html).html(data.render);
+                        //card_html.find('#tiddler-content-' + revision).html(data.render);
+                        $('#tiddler-content-' + revision, card_html).html(data.render);
                     } else {
-                        $('#tiddler-content-' + hashCode, card_html).html('<pre>' + htmlEncode(data.text) + '</pre>');
+                        $('#tiddler-content-' + revision, card_html).html('<pre>' + htmlEncode(data.text) + '</pre>');
                     }
                 }
 
-                if ($('#card_' + workingTiddlerHash + ' .panel .panel-body').hasClass('expand')) {                    
+                if ($('#card_' + workingTiddlerRevision + ' .panel .panel-body').hasClass('expand')) {                    
                     //var tree = $(card_html);
                     card_html.find('.panel-body').addClass('expand');
                     $('i.expand-toggle', card_html).removeClass('fa fa-chevron-down fa-2x');
@@ -398,10 +405,10 @@ var tmanager = (function () {
                     card_html.find($('.panel-body', $(this).parent().parent().parent()).toggleClass('expand'));
                 });
 
-                $('#card_' + workingTiddlerHash).replaceWith(card_html);  
+                $('#card_' + workingTiddlerRevision).replaceWith(card_html);  
 
                 //replace the old tiddler in the tiddler array
-                mySPA.updateTiddlerInResultSet(workingTiddlerHash, data);
+                mySPA.updateTiddlerInResultSet(workingTiddlerRevision, data);
             }
 
             if (direction === 'next' || direction === 'prev') {
@@ -414,8 +421,35 @@ var tmanager = (function () {
     function getTiddlerDetailForEditSuccessCallback(data, flags) {
         var editArea = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body');
 
-        editArea.html('<textarea class="form-control" rows="15"></textarea>');
-        $('textarea', editArea).val(data.text);
+        if (data.type === 'text/html') {
+            
+            var iFrameHeight = $('iframe', editArea).css('height').replace('px','');
+
+            editArea.html('<textarea class="form-control" rows="15"></textarea>');
+
+            console.log(iFrameHeight);
+
+//style: "sceditor.jquery.sceditor.default.min.css",
+
+            $('textarea', editArea).sceditor({
+                    plugins: "xhtml",
+                    style: "bootstrap.min.css",
+                    width: "99%",
+                    height: iFrameHeight,
+                    emoticons: false,
+                    resizeHeight: false,
+                    resizeWidth: false,
+                    toolbarExclude: "pastetext,emoticon,youtube,date,time,ltr,rtl,print,maximize"
+            });
+
+            $('textarea', editArea).sceditor('instance').val(data.text);
+        } else {
+            editArea.html('<textarea class="form-control" rows="15"></textarea>');
+            $('textarea', editArea).val(data.text);    
+        }
+
+
+        
 
         $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('button-display-toggle');
         $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('button-display-toggle');
@@ -424,18 +458,24 @@ var tmanager = (function () {
     }
 
     function deleteTiddlerSuccessCallback() {
-        var removedTiddlerHash,
-            removedTiddlerTitle,
+        var removedTiddlerRevision,
             cardObject;
 
         $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content').fadeOut('fast').queue(            
             function() {
 
-                //Update the main page to reflect the tiddler has been removed
-                removedTiddlerHash = mySPA.tiddlers[currentModalTiddlerIndex].fields._hash;
-                removedTiddlerTitle = mySPA.tiddlers[currentModalTiddlerIndex].title;
+                //Record the detail of the tiddler which has been removed
+                removedTiddlerRevision = mySPA.tiddlers[currentModalTiddlerIndex].revision;
+                
+                //Remove from the tiddler array
+                mySPA.tiddlers.splice(currentModalTiddlerIndex, 1);
 
-                cardObject = $('#card_' + removedTiddlerHash);
+                //Make the nearest visible the current tiddler
+                currentModalTiddlerIndex = getNearestVisisbleTiddlerIndex(removedTiddlerRevision, 'next');
+
+
+                //Update the main page to reflect the tiddler has been removed            
+                cardObject = $('#card_' + removedTiddlerRevision);                
 
                 cardObject.fadeTo(1000, 0, function() {
 
@@ -449,18 +489,20 @@ var tmanager = (function () {
                         }
                     });
 
+                });                
+
+                //Update the typeahead details
+                var indexToDelete = -1;
+                $.each( tiddlerTitles, function( index, value ){
+                    if (value.id === removedTiddlerRevision) {
+                        indexToDelete = index;
+                        return false;
+                    }                
                 });
 
-                tiddlerTitles.splice(tiddlerTitles.indexOf(removedTiddlerTitle), 1);
+                tiddlerTitles.splice(indexToDelete, 1);
 
-                if (currentModalTiddlerIndex === mySPA.tiddlers.length - 1) {
-                    mySPA.tiddlers.splice(currentModalTiddlerIndex, 1);
-                    currentModalTiddlerIndex = 0;
-                } else {
-                    mySPA.tiddlers.splice(currentModalTiddlerIndex, 1);
-                }
-
-                if (mySPA.tiddlers.length > 0) {
+                if (currentModalTiddlerIndex != -1) {
                     mySPA.getTiddlerDetail(currentModalTiddlerIndex, 'deleted', getTiddlerDetailSuccessCallback);
                 } else {
                     $('#tiddlerModal').modal('hide');
@@ -548,14 +590,51 @@ var tmanager = (function () {
 
         $('#tiddlerModal').html(tiddlerModalTemplate(slideData));
 
+        tiddlerModalTemplate
+
+
+        var iFrame;
+
+        if (data.type === 'text/html') {
+                        
+
+/*            var cssLink = document.createElement("link") 
+            cssLink.href = "style.css"; 
+            cssLink .rel = "stylesheet"; 
+            cssLink .type = "text/css"; 
+            frames['frame1'].document.body.appendChild(cssLink);
+*/
+
+            if (direction === null || direction === 'saved') {
+                iFrame = '#slide1IFrame';
+                document.getElementById('slide1IFrame').contentWindow.document.write(data.text);            
+            } else {
+                iFrame = '#slide2IFrame';
+                document.getElementById('slide2IFrame').contentWindow.document.write(data.text);
+            };
+            var head = $(iFrame).contents().find("head");                
+            head.append($("<link/>", 
+                { rel: "stylesheet", href: "bootstrap.min.css", type: "text/css" }));
+
+        }
+        
+
         pageHeight = $(window).height();
         //windowHeight = Math.floor(pageHeight * 0.9);
 
         $('.carousel-control.left').click(function () {
-            slideCard('prev');
+            if ($('#modalCarousel .carousel-inner .item.active .save-button').is(":visible")) {
+                checkForUnsavedChanges('prev');
+            } else {
+                slideCard('prev');
+            }
         });
         $('.carousel-control.right').click(function () {
-            slideCard('next');       
+            if ($('#modalCarousel .carousel-inner .item.active .save-button').is(":visible")) {
+                checkForUnsavedChanges('next');
+            } else {
+                slideCard('next');
+            }      
         });
 
 
@@ -563,9 +642,16 @@ var tmanager = (function () {
             'max-height': (Math.floor(pageHeight * 0.9)) + 'px'
         });
 
-        $('#tiddlerModal .modal-body').css({
-            'max-height': (Math.floor(pageHeight * 0.5)) + 'px'
-        });
+        if (!iFrame) {
+            $('#tiddlerModal .modal-body').css({
+                'max-height': (Math.floor(pageHeight * 0.5)) + 'px'
+            });
+        } else {
+            $(iFrame).css({
+                'height': (Math.floor(pageHeight * 0.5)) + 'px'
+            });
+        }
+
 
         if (direction === 'deleted') {
             //$('#modalCarousel').find(".item.active .modal-dialog .modal-content").css('background-color', 'red');
@@ -577,10 +663,11 @@ var tmanager = (function () {
         }
     }
 
-    function getTiddlerIndexFromHash(hashCode) {    
+
+    function getTiddlerIndexFromRevision(revision) {    
         var tiddlerIndex = -1;
         $.each(mySPA.tiddlers, function( index, tiddler ) {
-            if (hashCode === tiddler.fields._hash) {
+            if (revision === tiddler.revision) {
                 tiddlerIndex = index;
                 return false;
             }
@@ -588,25 +675,60 @@ var tmanager = (function () {
         return tiddlerIndex;;
     }
 
-    function slideCard(direction) {
+
+
+    function getNearestVisisbleTiddlerIndex(tiddlerRevision, direction) {
+        var nearestTiddlerIndex = -1,
+            nearestRevision;
+
         if (direction === 'prev') {
-            if (currentModalTiddlerIndex === 0) {
-                currentModalTiddlerIndex = mySPA.tiddlers.length - 1;
+
+            nearestRevision = $('#card_' + tiddlerRevision).prevAll('.card').filter(':visible:first').attr('id');
+
+            if (!nearestRevision) {
+                nearestRevision = $('#card_' + tiddlerRevision).nextAll('.card').filter(':visible:last').attr('id');
+            }
+
+            if (!nearestRevision) {
+                nearestRevision = tiddlerRevision;
             } else {
-                currentModalTiddlerIndex = currentModalTiddlerIndex - 1;
+                //Remove the card_ part to get the revision
+                nearestRevision = nearestRevision.replace('card_', '');
             }
         } else {
-            if (currentModalTiddlerIndex === mySPA.tiddlers.length - 1) {
-                currentModalTiddlerIndex = 0;
+
+            nearestRevision = $('#card_' + tiddlerRevision).nextAll('.card').filter(':visible:first').attr('id');
+
+            if (!nearestRevision) {
+                nearestRevision = $('#card_' + tiddlerRevision).prevAll('.card').filter(':visible:last').attr('id');
+            }
+
+            if (!nearestRevision) {
+                nearestRevision = tiddlerRevision;
             } else {
-                currentModalTiddlerIndex = currentModalTiddlerIndex + 1;
+                //Remove the card_ part to get the revision
+                nearestRevision = nearestRevision.replace('card_', '');
             }
         }
-        mySPA.getTiddlerDetail(currentModalTiddlerIndex, direction, getTiddlerDetailSuccessCallback);
+
+        //Get the index
+        nearestRevision = parseInt(nearestRevision);
+        $.each(mySPA.tiddlers, function(index, tiddler) {
+            if (tiddler.revision === nearestRevision) {
+                nearestTiddlerIndex = index;
+                return false;
+            }
+        });
+
+        return nearestTiddlerIndex;
     }
 
     function deleteTiddler() {
         mySPA.deleteTiddler(currentModalTiddlerIndex, deleteTiddlerSuccessCallback);
+    }
+
+    function addTiddler() {        
+       // mySPA.addTiddler('New one from tmanager', 'text/html', 'Default Text');        
     }
 
     function savePreset() {
@@ -716,7 +838,7 @@ var tmanager = (function () {
 
         $.each(mySPA.tiddlers, function(index, tiddler) {
             if (tiddler.title.toUpperCase().match(regEx)) {
-                divID = '#card_' + tiddler.fields._hash;
+                divID = '#card_' + tiddler.revision;
                 return false;
             }
         });
@@ -728,10 +850,12 @@ var tmanager = (function () {
 
     function substringMatcher(strs) {
       return function findMatches(q, cb) {
-        var matches, substrRegex;
+        var matches, substrRegex, matchedNamesReqEx;
      
         // an array that will be populated with substring matches
         matches = [];
+
+        matchedNamesReqEx = '';
      
         // regex used to determine if a string contains the substring `q`
         substrRegex = new RegExp(q, 'i');
@@ -743,12 +867,76 @@ var tmanager = (function () {
             // the typeahead jQuery plugin expects suggestions to a
             // JavaScript object, refer to typeahead docs for more info
             matches.push({ value: str });
+            matchedNamesReqEx += '(' + str + ')';
           }
         });
      
         cb(matches);
+        console.log('matches :: ' + matchedNamesReqEx);
+        //$.each( $(".card .panel-heading h4 [name^='news-top-']"), function () {
+        //    $(this).hide();
+        //});
       };
     };
+
+    function substringTiddlerMatcher(tiddlers) {
+      return function findMatches(q, cb) {
+        var matches, substrRegex, matchedNamesReqEx;
+     
+        // an array that will be populated with substring matches
+        matches = [];
+
+        matchedCardIds = '';
+     
+        // regex used to determine if a string contains the substring `q`
+        substrRegex = new RegExp(q, 'i');
+     
+        // iterate through the pool of strings and for any string that
+        // contains the substring `q`, add it to the `matches` array
+        $.each(tiddlers, function(i, tiddler) {
+          if (substrRegex.test(tiddler.title)) {
+            // the typeahead jQuery plugin expects suggestions to a
+            // JavaScript object, refer to typeahead docs for more info
+            matches.push({ value: tiddler.title });
+            matchedCardIds += '#card_' + tiddler.id + ', ';
+          }
+        });
+     
+        cb(matches);
+
+        if (matchedCardIds !== '') {
+            //remove the last comma
+            matchedCardIds = matchedCardIds.slice(0,-2);
+        }
+
+        showFilteredCards(matchedCardIds);
+
+      };
+    };   
+
+    function showFilteredCards(cardIds) {
+        if (cardIds) {
+            if (cardIds !== '') {
+                $('.card').not(matchedCardIds).hide(); 
+                $('.card ' + matchedCardIds).show();
+            } else {
+                //No match so hide them all
+                $('.card ').hide();
+            }
+        } else {
+            //No ids passed in, so show them all
+            $('.card ').show();
+        }
+
+        $('.cardclearfix').remove();
+
+        $('.card').filter(':visible').each(function( index, card) {
+            if (index % 3 === 0) {                
+                $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
+            }
+        });
+        checkScrollbarVisibility();
+    }
 
     function hasVerticalScroll(node){
         if(node == undefined){
@@ -783,6 +971,41 @@ var tmanager = (function () {
     }
 
 
+    function addToLocalStorage(name, value) {
+        if (typeof(Storage) != "undefined") {
+            // Store
+            localStorage.setItem(name, value);
+        }
+    }
+
+    function getFromLocalStorage(name) {
+        var result = null;
+        if (typeof(Storage) != "undefined") {
+            // Store
+            result = localStorage.getItem(name)
+        }
+        return result;
+    }
+
+    function checkForUnsavedChanges(callingAction) {    
+        var options = {
+            'backdrop' : 'static'
+        };
+        
+        $("#btnIgnoreEdit").attr("onclick","tmanager.handleIgnoreEdit('" + callingAction + "');");
+
+        $('#unsavedChangesConfirmModal').modal(options);
+    }
+
+     function slideCard (direction) {
+
+        currentModalTiddlerIndex = getNearestVisisbleTiddlerIndex(mySPA.tiddlers[currentModalTiddlerIndex].revision, direction);
+
+        mySPA.getTiddlerDetail(currentModalTiddlerIndex, direction, getTiddlerDetailSuccessCallback);
+    }
+
+
+
     /*
      * End of private functions
      */
@@ -815,6 +1038,8 @@ var tmanager = (function () {
 
             mySPA.getTiddlers(spaceText, queryText, renderTiddlersAsCardsCallback, retrievalErrorCallback);            
 
+            //addToLocalStorage('latestQuery', queryText);
+
             event.preventDefault();
         });
         
@@ -842,31 +1067,65 @@ var tmanager = (function () {
             $('.sidebar-toggle i').toggleClass('fa fa-chevron-left');
         });
 
-        //The scrollTo entry box
-
-        $('#scrollTo').typeahead({
-            hint: true,
+        //The filterBy entry box
+        var filterBy = $('#filterBy');
+        filterBy.typeahead({
+            hint: false,
             highlight: true,
             minLength: 1
         },
         {
             name: 'tiddlerTitles',
             displayKey: 'value',
-            source: substringMatcher(tiddlerTitles)
+            source: substringTiddlerMatcher(tiddlerTitles)
         });
 
-        $('#scrollTo').bind('typeahead:selected', function(obj, datum, name) {            
+        filterBy.bind('typeahead:selected', function(obj, datum, name) {            
             scrollToCard(datum.value, true);
-            $('#scrollTo').typeahead('close');
+            $('#filterBy').typeahead('close');
         });
 
-        $('#scrollTo').keypress(function (e) {
-            if (e.which == 13) {
-                scrollToCard($('#scrollTo').val(), false);                
+  /*      scrollTo.bind('typeahead:opened', function(obj, datum, name) {            
+            if (scrollTo.val() === '') {
+                scrollTo.attr("placeholder","");
             }
-            $('#scrollTo').typeahead('close');
+        });
+*/
+
+
+        filterBy.keypress(function (e) {
+            if (e.which == 13) {
+                scrollToCard($('#filterBy').val(), false);
+                $('#filterBy').typeahead('close');              
+            }
         });
 
+        filterBy.keyup(function () {
+            if ($('#filterBy').val() === '') {
+                console.log('empty');
+                showFilteredCards();
+            }
+        });        
+
+
+   /*    scrollTo.typeahead.change(function () {
+            if ($('#scrollTo').val() === '') {
+                showFilteredCards();
+            }
+        });*/
+
+/*        scrollTo.focus(function () {            
+            //scrollTo.autocomplete("search","");
+            if (scrollTo.val() === '') {
+                //auto expand the scrollto typeahead
+                ev = $.Event("keydown");
+                ev.keyCode = ev.which = 40;
+                $(this).trigger(ev);
+                //$('#scrollTo').typeahead('open');
+                return true
+            }
+        });
+*/
         $('.twitter-typeahead').css('vertical-align', 'middle');
     
         //Configure the data toggle for the expand/collapse all button
@@ -874,6 +1133,10 @@ var tmanager = (function () {
             $('.sidebar-right-toggle i').toggleClass('fa fa-expand');
             $('.sidebar-right-toggle i').toggleClass('fa fa-compress');
             expandCollapseAll();
+        });
+
+        $('[data-toggle=addnew]').click(function () {
+            addTiddler();
         });
 
         $('#btnDeleteTiddler').click(function() {            
@@ -887,7 +1150,7 @@ var tmanager = (function () {
 
         $('#presetItems').on('change', function () {
             updateSearchForm();
-        });
+        });        
 
         $('#btnSavePreset').click(function () {
             savePreset();
@@ -942,6 +1205,13 @@ var tmanager = (function () {
             resetSearchForm();
         });
 
+        $('#tiddlerModal').on('hide.bs.modal', function(e){    
+            if ($('#modalCarousel .carousel-inner .item.active .save-button').is(":visible")) {
+                checkForUnsavedChanges('close');
+                e.preventDefault();
+            }
+        });
+
         $( window ).resize(function() {
             checkScrollbarVisibility();
         });
@@ -976,24 +1246,26 @@ var tmanager = (function () {
         
         // Compile the templates
         cardTemplate = Handlebars.compile(cardTemplateScript);
-        tiddlerModalTemplate = Handlebars.compile(tiddlerModalTemplateScript);        
+        tiddlerModalTemplate = Handlebars.compile(tiddlerModalTemplateScript);  
+
+        $('#filterBy').focus();      
     },
     
-    getCardBody: function (hashCode) {        
-        if ($('#tiddler-content-' + hashCode).html() === '') {
+    getCardBody: function (revision) {        
+        if ($('#tiddler-content-' + revision).html() === '') {
             
-        	var tiddlerIndex = getTiddlerIndexFromHash(hashCode),  
+        	var tiddlerIndex = getTiddlerIndexFromRevision(revision),  
                 tiddler = mySPA.tiddlers[tiddlerIndex];
             
             mySPA.tsStore.get(tiddler, function (tiddler) {
                 if (tiddler.type === 'image/svg+xml') {
-                    $('#tiddler-content-' + hashCode).html(tiddler.text);
+                    $('#tiddler-content-' + revision).html(tiddler.text);
                 } else if (tiddler.type === 'image/png' || tiddler.type === 'image/jpeg') {
-                    $('#tiddler-content-' + hashCode).html('<img src="' + tiddler.uri + '"/>');
+                    $('#tiddler-content-' + revision).html('<img src="' + tiddler.uri + '"/>');
                 } else if (tiddler.render) {
-                    $('#tiddler-content-' + hashCode).html(tiddler.render);
+                    $('#tiddler-content-' + revision).html(tiddler.render);
                 } else {
-                    $('#tiddler-content-' + hashCode).html('<pre>' + htmlEncode(tiddler.text) + '</pre>');
+                    $('#tiddler-content-' + revision).html('<pre>' + htmlEncode(tiddler.text) + '</pre>');
                 }
                 checkScrollbarVisibility();
             }, true);            
@@ -1005,8 +1277,8 @@ var tmanager = (function () {
         //}
     },
     
-    showModalCarousel: function (hashCode) {
-        currentModalTiddlerIndex = getTiddlerIndexFromHash(hashCode);  
+    showModalCarousel: function (revision) {
+        currentModalTiddlerIndex = getTiddlerIndexFromRevision(revision);  
         mySPA.getTiddlerDetail(currentModalTiddlerIndex, null, getTiddlerDetailSuccessCallback);
     },
     
@@ -1020,7 +1292,11 @@ var tmanager = (function () {
 
             var tiddler = mySPA.getWorkingTiddler();
 
-            tiddler.text = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body textarea').val();
+            if (tiddler.type !== 'text/html') {
+                tiddler.text = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body textarea').val();
+            } else {
+                tiddler.text = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body textarea').sceditor('instance').val();
+            }
 
             mySPA.setWorkingTiddler(tiddler);
 
@@ -1037,8 +1313,21 @@ var tmanager = (function () {
         $('#deleteConfirmModal .modal-dialog .modal-content .modal-body .tiddlerName').html('<h2>' + mySPA.tiddlers[currentModalTiddlerIndex].title + '</h2>');
 
         $('#deleteConfirmModal').modal(options);
+    },
+
+    handleIgnoreEdit: function (callingAction) {
+        
+        if (callingAction === 'next') {
+            slideCard('next');
+        } else if (callingAction === 'prev') {
+            slideCard('prev');
+        } else if (callingAction === 'close') {
+            $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('button-display-toggle');
+            $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('button-display-toggle');
+            $('#tiddlerModal').modal('hide');
+        }
     }
-   
+
   };
 })();
 

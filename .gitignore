@@ -3,3 +3,7 @@
 assets/tmanager - Copy.js
 deploy.bat
 deploy_prod.bat
+bt_site.tsapp
+deploy_to_bt.bat
+public_site - Copy.tsapp
+public_site.tsapp

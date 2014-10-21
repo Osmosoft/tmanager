@@ -10,6 +10,7 @@
 	<link rel="stylesheet" href="bootstrap.min.css">
 	<link rel="stylesheet" href="bootstrapValidator.min.css">
 	<link rel="stylesheet" href="font-awesome.min.css">
+	<link rel="stylesheet" href="sceditor.default.min.css" type="text/css" media="all" />
 	<link rel="stylesheet" href="tmanager.css">
 
 
@@ -107,13 +108,18 @@
 								data-placement="bottom" title="Show/Hide Search Panel">
 								<i class="fa fa-chevron-right"></i>
 							</button>
-           					<input type="text" id="scrollTo" class="typeahead form-control" placeholder="Scroll to..."/>
+           					<input type="text" id="filterBy" class="typeahead form-control" placeholder="Filter..."/>
 <!--		                </div>
 		            </div>
 			    </div>-->
 			</div>
 
 			<div id="sidebar-right" class="sidebar-right-toggle">
+				<button type="button" class="btn btn-primary btn-xl"
+					data-toggle="addnew" data-toggle="tooltip" data-placement="bottom"
+					title="Add New">
+					<i class="fa fa-plus"></i>
+				</button>
 				<button type="button" class="btn btn-primary btn-xl"
 					data-toggle="expand" data-toggle="tooltip" data-placement="bottom"
 					title="Expand/Collapse All">
@@ -173,6 +179,26 @@
 		</div>
 	</div>
 
+	<!--Unsaved changes Modal Dialog-->
+	<div class="modal fade" id="unsavedChangesConfirmModal" tabindex="-1"
+		role="dialog" aria-labelledby="unsavedChangesConfirmModal" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h2 class="modal-title" id="myModalLabel">Editing Tiddler</h2>
+				</div>
+				<div class="modal-body">
+					You are currently editing this tiddler.  Any unsaved changes will be lost.  Are you sure you want to close this Tiddler?
+					<div class="tiddlerName"></div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					<button id="btnIgnoreEdit" type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<!--Save Preset Modal Dialog-->
 	<div class="modal fade" id="savePresetModal" tabindex="-1"
 		role="dialog" aria-labelledby="saveConfirmModal" aria-hidden="true">
@@ -223,18 +249,18 @@
 
 	<!-- the card template -->
 	<script id="cardTemplate" type="text/x-handlebars-template">
-        <div id="card_{{fields._hash}}" class="card col-md-4">            
+        <div id="card_{{revision}}" class="card col-md-4">            
         	<div class="panel panel-default">
                 <div class="panel-heading">                	
                 	<div class="pull-right">
-                		<a href="#" onClick="tmanager.showModalCarousel('{{fields._hash}}');"  role="button" data-toggle="modal" data-toggle="tooltip" data-placement="bottom" title="Open"><i class="fa fa-eye fa-2x"></i></a>
-                		<a href="#" onClick="tmanager.getCardBody('{{fields._hash}}');" data-toggle="expand-panel" data-toggle="tooltip" data-placement="bottom" title="Expand/Collapse"><i class="expand-toggle fa fa-chevron-down fa-2x"></i></a>
+                		<a href="#" onClick="tmanager.showModalCarousel({{revision}});"  role="button" data-toggle="modal" data-toggle="tooltip" data-placement="bottom" title="Open"><i class="fa fa-eye fa-2x"></i></a>
+                		<a href="#" onClick="tmanager.getCardBody({{revision}});" data-toggle="expand-panel" data-toggle="tooltip" data-placement="bottom" title="Expand/Collapse"><i class="expand-toggle fa fa-chevron-down fa-2x"></i></a>
                 	</div>
                 	<h4>{{title}}</h4>
                 </div>
                 <div class="panel-body">
                     <div class="clearfix"></div>
-                    <div id="tiddler-content-{{fields._hash}}"></div>
+                    <div id="tiddler-content-{{revision}}"></div>
                 </div>
                 <div class="nav panel-footer">
                     <span class="card-tags">
@@ -288,11 +314,15 @@
 											{{#ifCond slide1.type '==' "image/jpeg"}}
 					                    		<img src="{{slide1.uri}}"/>
 				                    		{{else}}
-				                    			{{#if slide1.render}}
-				                    	  			{{{slide1.render}}}
-			                    				{{else}}
-				                      				<pre>{{slide1.text}}</pre>
-			                    				{{/if}}
+				                    			{{#ifCond slide1.type '==' "text/html"}}
+						                    		<iframe sandbox="allow-same-origin" id="slide1IFrame" frameborder="0"></iframe>
+					                    		{{else}}
+					                    			{{#if slide1.render}}
+					                    	  			{{{slide1.render}}}
+				                    				{{else}}
+					                      				<pre>{{slide1.text}}</pre>
+				                    				{{/if}}
+				                    			{{/ifCond}}	
 											{{/ifCond}}
 				                    	{{/ifCond}}	
 			                    	{{/ifCond}}	
@@ -344,11 +374,15 @@
 											{{#ifCond slide2.type '==' "image/jpeg"}}
 					                    		<img src="{{slide2.uri}}"/>
 				                    		{{else}}
-				                    			{{#if slide2.render}}
-				                    	  			{{{slide2.render}}}
-			                    				{{else}}
-				                      				<pre>{{slide2.text}}</pre>
-			                    				{{/if}}
+				                    			{{#ifCond slide2.type '==' "text/html"}}
+						                    		<iframe sandbox="allow-same-origin" id="slide2IFrame" frameborder="0"></iframe>
+					                    		{{else}}
+					                    			{{#if slide2.render}}
+					                    	  			{{{slide2.render}}}
+				                    				{{else}}
+					                      				<pre>{{slide2.text}}</pre>
+				                    				{{/if}}
+				                    			{{/ifCond}}	
 											{{/ifCond}}
 				                    	{{/ifCond}}	
 			                    	{{/ifCond}}	
@@ -392,6 +426,7 @@
 	<script type="text/javascript" src="bootstrapValidator.min.js"></script>
 	<script type="text/javascript" src="handlebars.min-v1.3.0.js"></script>
 	<script type="text/javascript" src="typeahead.bundle.min.js"></script>
+	<script type="text/javascript" src="sceditor.jquery.sceditor.xhtml.min.js"></script>
 	<script type="text/javascript" src="tmanager.js"></script>
 
 </body>

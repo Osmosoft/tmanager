@@ -267,12 +267,12 @@ body {
 	overflow-x: hidden;
 }
 
-#deleteConfirmModal .modal-dialog, #savePresetModal .modal-dialog {
+#deleteConfirmModal .modal-dialog, #savePresetModal .modal-dialog, #unsavedChangesConfirmModal .modal-dialog {
 	margin-top: 45px;
 	max-width: 85%;
 }
 
-#deleteConfirmModal .modal-header, #savePresetModal .modal-header {
+#deleteConfirmModal .modal-header, #savePresetModal .modal-header, #unsavedChangesConfirmModal .modal-header {
 	background-color: #C2C2C2	
 }
 
@@ -483,6 +483,19 @@ span.twitter-typeahead .tt-suggestion > p:focus {
 span.twitter-typeahead .tt-suggestion.tt-cursor {
   color: #ffffff;
   background-color: #428bca;
+}
+
+
+/*.sceditor-button {
+  width: initial;
+  height: initial;
+}
+*/
+.sceditor-container { font-weight: normal }
+.sceditor-button { box-sizing: content-box; -webkit-box-sizing: content-box; -moz-box-sizing: content-box; }
+
+.modal-body iframe {
+  width: 100%;
 }
 
 /* Portrait Media Queries */
