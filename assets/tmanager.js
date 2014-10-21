@@ -139,6 +139,16 @@ var tmanager = (function () {
         this.tsStore.save(tiddler, function(response, error){
             if (response) {                
                 showAlert('alert-success', 'The tiddler has been saved.');
+
+                if (workingTiddlerIndex === -1) {
+                    //A new tiddler, so add to the local array                
+                    spa.tiddlers.push(tiddler);
+                    spa.workingTiddler = response;
+                    spa.workingTiddlerIndex = spa.tiddlers.length - 1;
+                    currentModalTiddlerIndex = spa.workingTiddlerIndex;
+                    workingTiddlerIndex = spa.workingTiddlerIndex;
+                }
+
                 spa.getTiddlerDetail(workingTiddlerIndex, 'saved', successCallback);
             } else if (error.name === 'SaveError') {
                 showAlert('alert-danger', 'There was a problem saving. Please try again');
@@ -171,28 +181,35 @@ var tmanager = (function () {
 
     SPA.prototype.deleteTiddler = function(tiddlerIndex, successCallback) {    
         var spa = this;
-        console.log('Deleting tiddler');
-        console.log(this.tiddlers[tiddlerIndex]);
+        
+        if (tiddlerIndex !== -1) {
+            console.log('Deleting tiddler');
+            console.log(this.tiddlers[tiddlerIndex]);
 
-        successCallback();
+            successCallback();
 
-        this.tsStore.destroy(this.tiddlers[tiddlerIndex], function(response, error){
-            if (response) {
-                successCallback();
-            } else if (error.name === 'RemoveError') {
-                showAlert('alert-danger', 'There was a problem deleting. Please try again');
-            } else if (error.name === 'EmptyError') {
-                showAlert('alert-info', 'There was nothing to delete.');
-            }
-        });
+            this.tsStore.destroy(this.tiddlers[tiddlerIndex], function(response, error){
+                if (response) {
+                    successCallback();
+                } else if (error.name === 'RemoveError') {
+                    showAlert('alert-danger', 'There was a problem deleting. Please try again');
+                } else if (error.name === 'EmptyError') {
+                    showAlert('alert-info', 'There was nothing to delete.');
+                }
+            });
+        } else {
+            console.log('Nothing to delete as tiddler not saved.');
+            successCallback();
+        }
     };
 
     SPA.prototype.addTiddler = function(name, type, defaultText, successCallback) {
-        var tiddler = new tiddlyweb.Tiddler(name);
-        tiddler.type = type;
-        tiddler.text = defaultText; 
-        this.tsStore.add(tiddler, true);
-        successCallback();
+
+        //this.tsStore.add(tiddler, true);
+        //this.tiddlers.push(tiddler);
+        //this.workingTiddlerIndex = this.tiddlers.length - 1;
+        //currentModalTiddlerIndex = this.workingTiddlerIndex;
+        //successCallback(tiddler);
     }
 
     SPA.prototype.getWorkingTiddler = function() {
@@ -436,11 +453,11 @@ var tmanager = (function () {
                     style: "bootstrap.min.css",
                     width: "99%",
                     height: iFrameHeight,
-                    emoticons: false,
+                    emoticonsEnabled: false,
                     resizeHeight: false,
                     resizeWidth: false,
                     toolbarExclude: "pastetext,emoticon,youtube,date,time,ltr,rtl,print,maximize"
-            });
+            });            
 
             $('textarea', editArea).sceditor('instance').val(data.text);
         } else {
@@ -457,6 +474,10 @@ var tmanager = (function () {
         mySPA.setWorkingTiddler(data);
     }
 
+    function addTiddlerSuccessCallback(data) {        
+        renderTiddlerDetail(data, 'add');
+    }
+
     function deleteTiddlerSuccessCallback() {
         var removedTiddlerRevision,
             cardObject;
@@ -464,47 +485,54 @@ var tmanager = (function () {
         $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content').fadeOut('fast').queue(            
             function() {
 
-                //Record the detail of the tiddler which has been removed
-                removedTiddlerRevision = mySPA.tiddlers[currentModalTiddlerIndex].revision;
-                
-                //Remove from the tiddler array
-                mySPA.tiddlers.splice(currentModalTiddlerIndex, 1);
+                if (currentModalTiddlerIndex !== -1) {
+                    //Delete the tiddler
 
-                //Make the nearest visible the current tiddler
-                currentModalTiddlerIndex = getNearestVisisbleTiddlerIndex(removedTiddlerRevision, 'next');
+                    //Record the detail of the tiddler which has been removed
+                    removedTiddlerRevision = mySPA.tiddlers[currentModalTiddlerIndex].revision;
+                    
+                    //Remove from the tiddler array
+                    mySPA.tiddlers.splice(currentModalTiddlerIndex, 1);
+
+                    //Make the nearest visible the current tiddler
+                    currentModalTiddlerIndex = getNearestVisisbleTiddlerIndex(removedTiddlerRevision, 'next');
 
 
-                //Update the main page to reflect the tiddler has been removed            
-                cardObject = $('#card_' + removedTiddlerRevision);                
+                    //Update the main page to reflect the tiddler has been removed            
+                    cardObject = $('#card_' + removedTiddlerRevision);                
 
-                cardObject.fadeTo(1000, 0, function() {
+                    cardObject.fadeTo(1000, 0, function() {
 
-                    cardObject.remove();
+                        cardObject.remove();
 
-                    $('.cardclearfix').remove();
+                        $('.cardclearfix').remove();
 
-                    $('.card').each(function( index, card) {
-                        if (index % 3 === 0) {                
-                            $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
-                        }
+                        $('.card').each(function( index, card) {
+                            if (index % 3 === 0) {                
+                                $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
+                            }
+                        });
+
+                    });                
+
+                    //Update the typeahead details
+                    var indexToDelete = -1;
+                    $.each( tiddlerTitles, function( index, value ){
+                        if (value.id === removedTiddlerRevision) {
+                            indexToDelete = index;
+                            return false;
+                        }                
                     });
 
-                });                
+                    tiddlerTitles.splice(indexToDelete, 1);
 
-                //Update the typeahead details
-                var indexToDelete = -1;
-                $.each( tiddlerTitles, function( index, value ){
-                    if (value.id === removedTiddlerRevision) {
-                        indexToDelete = index;
-                        return false;
-                    }                
-                });
-
-                tiddlerTitles.splice(indexToDelete, 1);
-
-                if (currentModalTiddlerIndex != -1) {
-                    mySPA.getTiddlerDetail(currentModalTiddlerIndex, 'deleted', getTiddlerDetailSuccessCallback);
+                    if (currentModalTiddlerIndex != -1) {
+                        mySPA.getTiddlerDetail(currentModalTiddlerIndex, 'deleted', getTiddlerDetailSuccessCallback);
+                    } else {
+                        $('#tiddlerModal').modal('hide');
+                    }
                 } else {
+                    //Nothing to delete as the tiddler has not been saved.
                     $('#tiddlerModal').modal('hide');
                 }
                 showAlert('alert-success', 'The tiddler has been deleted.');
@@ -576,7 +604,7 @@ var tmanager = (function () {
 
         slideDetail = data;        
 
-        if (direction === null || direction === 'saved') {
+        if (direction === null || direction === 'saved' || direction === 'add') {
             slideData = {
                 slide1: data,
                 slide2: outgoingSlideDetail
@@ -588,10 +616,13 @@ var tmanager = (function () {
             };
         }
 
+        var showCarouselControls = $('.carousel-control').is(":visible") || direction === null;
+
         $('#tiddlerModal').html(tiddlerModalTemplate(slideData));
 
-        tiddlerModalTemplate
-
+        if (!showCarouselControls || direction === 'add') {
+            $('.carousel-control').hide();
+        }
 
         var iFrame;
 
@@ -605,7 +636,7 @@ var tmanager = (function () {
             frames['frame1'].document.body.appendChild(cssLink);
 */
 
-            if (direction === null || direction === 'saved') {
+            if (direction === null || direction === 'saved' || direction === 'add') {
                 iFrame = '#slide1IFrame';
                 document.getElementById('slide1IFrame').contentWindow.document.write(data.text);            
             } else {
@@ -660,7 +691,16 @@ var tmanager = (function () {
 
         if (direction === null) {
             $('#tiddlerModal').modal('show');
+        } else if (direction === 'add') {
+            //Had to put this event capture in to ensure the editor is sized correctly when displayed.
+            $('#tiddlerModal').on('shown.bs.modal', function() {
+                $('#tiddlerModal').off('shown.bs.modal');
+                getTiddlerDetailForEditSuccessCallback(data, null);                
+            });
+
+            $('#tiddlerModal').modal('show');            
         }
+
     }
 
 
@@ -727,8 +767,14 @@ var tmanager = (function () {
         mySPA.deleteTiddler(currentModalTiddlerIndex, deleteTiddlerSuccessCallback);
     }
 
-    function addTiddler() {        
-       // mySPA.addTiddler('New one from tmanager', 'text/html', 'Default Text');        
+    function addTiddler() {
+        var tiddler = new tiddlyweb.Tiddler('New one from tmanager');
+        tiddler.type = 'text/html';
+        tiddler.text = 'Default Text';
+        tiddler.permissions = ['write','delete'];
+        mySPA.setWorkingTiddler(tiddler);
+        currentModalTiddlerIndex = -1;
+        renderTiddlerDetail(tiddler, 'add');
     }
 
     function savePreset() {
@@ -1308,9 +1354,16 @@ var tmanager = (function () {
     confirmDeleteTiddler: function () {    
         var options = {
             'backdrop' : 'static'
-        };
+        },
+        deleteTiddlerTitle;
 
-        $('#deleteConfirmModal .modal-dialog .modal-content .modal-body .tiddlerName').html('<h2>' + mySPA.tiddlers[currentModalTiddlerIndex].title + '</h2>');
+        if (currentModalTiddlerIndex !== -1) {
+            deleteTiddlerTitle = mySPA.tiddlers[currentModalTiddlerIndex].title;
+        } else {
+            deleteTiddlerTitle = $('#tiddlerModal .item.active .modal-header h2').html();
+        }
+
+        $('#deleteConfirmModal .modal-dialog .modal-content .modal-body .tiddlerName').html('<h2>' + deleteTiddlerTitle + '</h2>');
 
         $('#deleteConfirmModal').modal(options);
     },
