@@ -136,15 +136,23 @@ var tmanager = (function () {
             card_html,
             revision;
 
-        this.tsStore.save(tiddler, function(response, error){
-            if (response) {                
+        this.tsStore.save(tiddler, function(savedTiddler, error){
+            if (savedTiddler) {                
                 showAlert('alert-success', 'The tiddler has been saved.');
 
                 if (workingTiddlerIndex === -1) {
-                    //A new tiddler, so add to the local array                
-                    spa.tiddlers.push(tiddler);
-                    spa.workingTiddler = response;
-                    spa.workingTiddlerIndex = spa.tiddlers.length - 1;
+                    //A new tiddler, so add to the local array in the correct position             
+                    spa.tiddlers.push(savedTiddler);
+                    spa.tiddlers.sort(function (a, b) {
+                        return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+                    });
+                    $.each(spa.tiddlers, function (index, value) {
+                        if (value === savedTiddler) {
+                            spa.workingTiddlerIndex = index;
+                            return false;
+                        }
+                    });
+                    spa.workingTiddler = savedTiddler;                    
                     currentModalTiddlerIndex = spa.workingTiddlerIndex;
                     workingTiddlerIndex = spa.workingTiddlerIndex;
                 }
@@ -222,12 +230,23 @@ var tmanager = (function () {
 
     SPA.prototype.updateTiddlerInResultSet = function(tiddlerToReplaceRevision, newTiddler) {
         var indexPos = -1;
-        $.each(this.tiddlers, function (index, tiddler) {
-            if (tiddler.revision === tiddlerToReplaceRevision) {
-                indexPos = index
-                return false;
-            }
-        });
+        if (tiddlerToReplaceRevision) {
+            //Revision number available for matching
+            $.each(this.tiddlers, function (index, tiddler) {
+                if (tiddler.revision === tiddlerToReplaceRevision) {
+                    indexPos = index
+                    return false;
+                }
+            });
+        } else {
+            //No revision yet (a new tiddler) so use the title and bag
+            $.each(this.tiddlers, function (index, tiddler) {
+                if (tiddler.title === newTiddler.title && tiddler.bag.name === newTiddler.bag.name) {
+                    indexPos = index
+                    return false;
+                }
+            });
+        }
         if (indexPos != -1) {
             this.tiddlers[indexPos] = newTiddler;
         }
@@ -341,9 +360,6 @@ var tmanager = (function () {
             cards_html = '',
             col_check;
 
-        //Empty the tiddler titles array, but keeping the same reference so that the typeahead control is updated
-        tiddlerTitles.length = 0;
-
         $.each(tiddlers, function () {
             col_check = item % 3;
             this.tiddlerIndex = item;
@@ -351,10 +367,11 @@ var tmanager = (function () {
                 cards_html += '<div class="clearfix visible-xs-block cardclearfix"></div>';
             }
             //cards_html += '<li class="col-md-4">' + cardTemplate(this) + '</li>';
-            cards_html +=  cardTemplate(this);
-            tiddlerTitles.push({title:this.title, id:this.revision});
+            cards_html +=  cardTemplate(this);            
             item = item + 1;
         });
+
+        updateTypeahead();
 
         //$("#cards").html('<ul class="list-unstyled">'  + cards_html + '</ul>');
         $('#cards').html(cards_html);
@@ -393,27 +410,6 @@ var tmanager = (function () {
                 //update the tiddler in the main page body
                 revision = data.revision;
                 card_html =  $(cardTemplate(data));
-                
-                if ($('#tiddler-content-' + workingTiddlerRevision).html() !== '') {
-
-                    if (data.type === 'image/svg+xml') {
-                        $('#tiddler-content-' + revision, card_html).html(data.text);
-                    } else if (data.type === 'image/png' || data.type === 'image/jpeg') {
-                        $('#tiddler-content-' + revision, card_html).html('<img src="' + data.uri + '"/>');
-                    } else if (data.render) {
-                        //card_html.find('#tiddler-content-' + revision).html(data.render);
-                        $('#tiddler-content-' + revision, card_html).html(data.render);
-                    } else {
-                        $('#tiddler-content-' + revision, card_html).html('<pre>' + htmlEncode(data.text) + '</pre>');
-                    }
-                }
-
-                if ($('#card_' + workingTiddlerRevision + ' .panel .panel-body').hasClass('expand')) {                    
-                    //var tree = $(card_html);
-                    card_html.find('.panel-body').addClass('expand');
-                    $('i.expand-toggle', card_html).removeClass('fa fa-chevron-down fa-2x');
-                    $('i.expand-toggle', card_html).addClass('fa fa-chevron-up fa-2x');
-                }
 
                 //Add the toggle to the new cards for the expand/collapse chevron
                 card_html.find('[data-toggle=expand-panel]').click(function () {
@@ -422,10 +418,66 @@ var tmanager = (function () {
                     card_html.find($('.panel-body', $(this).parent().parent().parent()).toggleClass('expand'));
                 });
 
-                $('#card_' + workingTiddlerRevision).replaceWith(card_html);  
-
                 //replace the old tiddler in the tiddler array
                 mySPA.updateTiddlerInResultSet(workingTiddlerRevision, data);
+
+                if (workingTiddlerRevision) {
+                    //Existing tiddler saved
+                    if ($('#tiddler-content-' + workingTiddlerRevision).html() !== '') {
+                        //Update existing card to reflect the new content
+                        if (data.type === 'image/svg+xml') {
+                            $('#tiddler-content-' + revision, card_html).html(data.text);
+                        } else if (data.type === 'image/png' || data.type === 'image/jpeg') {
+                            $('#tiddler-content-' + revision, card_html).html('<img src="' + data.uri + '"/>');
+                        } else if (data.render) {
+                            //card_html.find('#tiddler-content-' + revision).html(data.render);
+                            $('#tiddler-content-' + revision, card_html).html(data.render);
+                        } else {
+                            $('#tiddler-content-' + revision, card_html).html('<pre>' + htmlEncode(data.text) + '</pre>');
+                        }
+                    }
+
+                    if ($('#card_' + workingTiddlerRevision + ' .panel .panel-body').hasClass('expand')) {                    
+                       //var tree = $(card_html);
+                        card_html.find('.panel-body').addClass('expand');
+                        $('i.expand-toggle', card_html).removeClass('fa fa-chevron-down fa-2x');
+                        $('i.expand-toggle', card_html).addClass('fa fa-chevron-up fa-2x');
+                    }
+
+                    $('#card_' + workingTiddlerRevision).replaceWith(card_html);  
+                                        
+                } else {
+                    //New tiddler saved
+                    console.log(card_html);
+                    //Get the revision of the previous tiddler in the list so this tiddler can
+                    //be displayed after it
+                    var previsousTiddlerRevision = -1;
+                    $.each(mySPA.tiddlers, function( index, value ) {
+                        if (value.title === data.title && value.bag.name === data.bag.name) {
+                            if (index > 0) {
+                                previsousTiddlerRevision = mySPA.tiddlers[index -1].revision;                                
+                            }
+                            return false;
+                        }
+                    });
+                    if (previsousTiddlerRevision !== -1) {
+                        //Insert after previous tiddler
+                        $(card_html).insertAfter('#card_' + previsousTiddlerRevision); 
+                    } else {
+                        //Insert as first card
+                        $('#cards').prepend(card_html); 
+                    }
+
+                    $('.cardclearfix').remove();
+                    $('.card').each(function( index, card) {
+                        if (index % 3 === 0) {                
+                            $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
+                        }
+                    });
+
+                    updateTypeahead();
+
+                }                
             }
 
             if (direction === 'next' || direction === 'prev') {
@@ -436,7 +488,8 @@ var tmanager = (function () {
     }
 
     function getTiddlerDetailForEditSuccessCallback(data, flags) {
-        var editArea = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body');
+        var editArea = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body'),
+            tagsText = '';
 
         if (data.type === 'text/html') {
             
@@ -460,18 +513,42 @@ var tmanager = (function () {
             });            
 
             $('textarea', editArea).sceditor('instance').val(data.text);
+            $('textarea', editArea).sceditor('instance').focus();
         } else {
             editArea.html('<textarea class="form-control" rows="15"></textarea>');
-            $('textarea', editArea).val(data.text);    
+            $('textarea', editArea).val(data.text);
+            $('textarea', editArea).focus();
         }
 
+        $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('edit-control-display-toggle');
+        $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('edit-control-display-toggle');
 
-        
+        if (!data.revision) {
+            //New tidder, so allow editing of the title
+            $('#modalCarousel .carousel-inner .item.active .title-header').toggleClass('edit-control-display-toggle');
+            $('#modalCarousel .carousel-inner .item.active .title-edit').toggleClass('edit-control-display-toggle');
+        } else {
+            //Check for any existing tags
+            $.each(data.tags, function (index, value) {
+                if (value.indexOf(' ') !== -1) {
+                    tagsText = tagsText.concat('[[').concat(value).concat(']]').concat(' ');
+                } else {
+                    tagsText = tagsText.concat(value).concat(' ');
+                }
+            });
+            if (tagsText !== '') {
+                //Strip the last space
+                tagsText = tagsText.replace(/ $/, '');
+            }
+            $('#modalCarousel .carousel-inner .item.active .tags-edit').val(tagsText);
+        }
 
-        $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('button-display-toggle');
-        $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('button-display-toggle');
+        $('#modalCarousel .carousel-inner .item.active .tags').toggleClass('edit-control-display-toggle');
+        $('#modalCarousel .carousel-inner .item.active .tags-edit').toggleClass('edit-control-display-toggle');
+
 
         mySPA.setWorkingTiddler(data);
+
     }
 
     function addTiddlerSuccessCallback(data) {        
@@ -515,16 +592,7 @@ var tmanager = (function () {
 
                     });                
 
-                    //Update the typeahead details
-                    var indexToDelete = -1;
-                    $.each( tiddlerTitles, function( index, value ){
-                        if (value.id === removedTiddlerRevision) {
-                            indexToDelete = index;
-                            return false;
-                        }                
-                    });
-
-                    tiddlerTitles.splice(indexToDelete, 1);
+                    updateTypeahead();
 
                     if (currentModalTiddlerIndex != -1) {
                         mySPA.getTiddlerDetail(currentModalTiddlerIndex, 'deleted', getTiddlerDetailSuccessCallback);
@@ -703,6 +771,14 @@ var tmanager = (function () {
 
     }
 
+    function updateTypeahead() {
+        //Empty the tiddler titles array, but keeping the same reference so that the typeahead control is updated
+        tiddlerTitles.length = 0;
+        
+        $.each(mySPA.tiddlers, function( index, tiddler ) {
+            tiddlerTitles.push({title:tiddler.title, id:tiddler.revision});
+        });    
+    }
 
     function getTiddlerIndexFromRevision(revision) {    
         var tiddlerIndex = -1;
@@ -768,7 +844,7 @@ var tmanager = (function () {
     }
 
     function addTiddler() {
-        var tiddler = new tiddlyweb.Tiddler('New one from tmanager');
+        var tiddler = new tiddlyweb.Tiddler('New Tiddler');
         tiddler.type = 'text/html';
         tiddler.text = 'Default Text';
         tiddler.permissions = ['write','delete'];
@@ -1336,12 +1412,29 @@ var tmanager = (function () {
 
         if (mySPA.getWorkingTiddler() !== null) {
 
-            var tiddler = mySPA.getWorkingTiddler();
+            var tiddler = mySPA.getWorkingTiddler(),
+                updatedTiddlerDetails = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content'),
+                tagsRegEx = /((\[\[.*?\]\])|[\S]*)+/g,
+                tags = $('.modal-footer .tags-edit', updatedTiddlerDetails).val();
+
+            tiddler.title = $('.modal-header .title-edit', updatedTiddlerDetails).val();
+            
+            tiddler.tags = [];
+
+            $.each(tags.match(tagsRegEx), function(index, value) {
+                if (value !== '') {
+                    if (/^\[\[.*\]\]$/.test(value)) {
+                        tiddler.tags.push(value.replace(/^\[\[/, '').replace(/\]\]$/, ''));
+                    } else {
+                        tiddler.tags.push(value);
+                    }
+                }
+            });
 
             if (tiddler.type !== 'text/html') {
-                tiddler.text = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body textarea').val();
+                tiddler.text = $('.modal-body textarea', updatedTiddlerDetails).val();
             } else {
-                tiddler.text = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body textarea').sceditor('instance').val();
+                tiddler.text = $('.modal-body textarea', updatedTiddlerDetails).sceditor('instance').val();
             }
 
             mySPA.setWorkingTiddler(tiddler);
@@ -1375,8 +1468,10 @@ var tmanager = (function () {
         } else if (callingAction === 'prev') {
             slideCard('prev');
         } else if (callingAction === 'close') {
-            $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('button-display-toggle');
-            $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('button-display-toggle');
+            $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('edit-control-display-toggle');
+            $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('edit-control-display-toggle');
+
+
             $('#tiddlerModal').modal('hide');
         }
     }
