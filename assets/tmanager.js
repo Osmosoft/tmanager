@@ -191,8 +191,6 @@ var tmanager = (function () {
         var spa = this;
         
         if (tiddlerIndex !== -1) {
-            console.log('Deleting tiddler');
-            console.log(this.tiddlers[tiddlerIndex]);
 
             successCallback();
 
@@ -206,7 +204,6 @@ var tmanager = (function () {
                 }
             });
         } else {
-            console.log('Nothing to delete as tiddler not saved.');
             successCallback();
         }
     };
@@ -257,7 +254,7 @@ var tmanager = (function () {
      */
     var mySPA,
         cardTemplate,
-        tiddlerModalTemplate,
+        slideTemplate,
         currentModalTiddlerIndex,
         slideDetail,
         outgoingSlideDetail,
@@ -448,7 +445,6 @@ var tmanager = (function () {
                                         
                 } else {
                     //New tiddler saved
-                    console.log(card_html);
                     //Get the revision of the previous tiddler in the list so this tiddler can
                     //be displayed after it
                     var previsousTiddlerRevision = -1;
@@ -468,12 +464,7 @@ var tmanager = (function () {
                         $('#cards').prepend(card_html); 
                     }
 
-                    $('.cardclearfix').remove();
-                    $('.card').each(function( index, card) {
-                        if (index % 3 === 0) {                
-                            $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
-                        }
-                    });
+                    setClearFixes();
 
                     updateTypeahead();
 
@@ -481,9 +472,8 @@ var tmanager = (function () {
             }
 
             if (direction === 'next' || direction === 'prev') {
-                $('#modalCarousel').carousel(direction);    
+                $('#modalCarousel').carousel(direction);                
             }
-
         }
     }
 
@@ -497,10 +487,6 @@ var tmanager = (function () {
 
             editArea.html('<textarea class="form-control" rows="15"></textarea>');
 
-            console.log(iFrameHeight);
-
-//style: "sceditor.jquery.sceditor.default.min.css",
-
             $('textarea', editArea).sceditor({
                     plugins: "xhtml",
                     style: "bootstrap.min.css",
@@ -513,7 +499,10 @@ var tmanager = (function () {
             });            
 
             $('textarea', editArea).sceditor('instance').val(data.text);
-            $('textarea', editArea).sceditor('instance').focus();
+            if (!isCreatingNewTiddler()) {
+                //Set focus to the existing tiddler content
+                $('textarea', editArea).sceditor('instance').focus();
+            }
         } else {
             editArea.html('<textarea class="form-control" rows="15"></textarea>');
             $('textarea', editArea).val(data.text);
@@ -527,6 +516,8 @@ var tmanager = (function () {
             //New tidder, so allow editing of the title
             $('#modalCarousel .carousel-inner .item.active .title-header').toggleClass('edit-control-display-toggle');
             $('#modalCarousel .carousel-inner .item.active .title-edit').toggleClass('edit-control-display-toggle');
+            $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-header input').focus();
+            $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-header input').select();
         } else {
             //Check for any existing tags
             $.each(data.tags, function (index, value) {
@@ -582,19 +573,13 @@ var tmanager = (function () {
 
                         cardObject.remove();
 
-                        $('.cardclearfix').remove();
-
-                        $('.card').each(function( index, card) {
-                            if (index % 3 === 0) {                
-                                $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
-                            }
-                        });
+                        setClearFixes();
 
                     });                
 
                     updateTypeahead();
 
-                    if (currentModalTiddlerIndex != -1) {
+                    if (currentModalTiddlerIndex != -1 && !isCreatingNewTiddler()) {
                         mySPA.getTiddlerDetail(currentModalTiddlerIndex, 'deleted', getTiddlerDetailSuccessCallback);
                     } else {
                         $('#tiddlerModal').modal('hide');
@@ -664,7 +649,8 @@ var tmanager = (function () {
 
         var slideData,
             pageHeight,
-            windowHeight;
+            windowHeight,
+            nextSlideToShow;
 
         if (slideDetail !== null && direction !== null && direction !== 'saved') {
             outgoingSlideDetail = slideDetail;
@@ -677,40 +663,39 @@ var tmanager = (function () {
                 slide1: data,
                 slide2: outgoingSlideDetail
             };
+            nextSlideToShow = '.item.active';
         } else {
             slideData = {
                 slide1: outgoingSlideDetail,
                 slide2: data
             };
+            if ($('#slide1').is(":visible")) {
+                nextSlideToShow = '#slide2';
+            } else if ($('#slide2').is(":visible")) {
+                nextSlideToShow = '#slide1';
+            } else {
+                 nextSlideToShow = '#slide2';
+            }
         }
 
-        var showCarouselControls = $('.carousel-control').is(":visible") || direction === null;
+        $(nextSlideToShow).html(slideTemplate(data));
 
-        $('#tiddlerModal').html(tiddlerModalTemplate(slideData));
+        var showCarouselControls = (!isCreatingNewTiddler()) || direction === null;
 
         if (!showCarouselControls || direction === 'add') {
             $('.carousel-control').hide();
+        } else {
+            $('.carousel-control').show();
         }
 
         var iFrame;
 
         if (data.type === 'text/html') {
                         
-
-/*            var cssLink = document.createElement("link") 
-            cssLink.href = "style.css"; 
-            cssLink .rel = "stylesheet"; 
-            cssLink .type = "text/css"; 
-            frames['frame1'].document.body.appendChild(cssLink);
-*/
-
-            if (direction === null || direction === 'saved' || direction === 'add') {
-                iFrame = '#slide1IFrame';
-                document.getElementById('slide1IFrame').contentWindow.document.write(data.text);            
-            } else {
-                iFrame = '#slide2IFrame';
-                document.getElementById('slide2IFrame').contentWindow.document.write(data.text);
-            };
+            iFrame = '#iframeid';
+            $(nextSlideToShow + ' iframe').attr('id', 'iframeid');            
+            document.getElementById('iframeid').contentWindow.document.write(data.text); 
+            
             var head = $(iFrame).contents().find("head");                
             head.append($("<link/>", 
                 { rel: "stylesheet", href: "bootstrap.min.css", type: "text/css" }));
@@ -719,23 +704,6 @@ var tmanager = (function () {
         
 
         pageHeight = $(window).height();
-        //windowHeight = Math.floor(pageHeight * 0.9);
-
-        $('.carousel-control.left').click(function () {
-            if ($('#modalCarousel .carousel-inner .item.active .save-button').is(":visible")) {
-                checkForUnsavedChanges('prev');
-            } else {
-                slideCard('prev');
-            }
-        });
-        $('.carousel-control.right').click(function () {
-            if ($('#modalCarousel .carousel-inner .item.active .save-button').is(":visible")) {
-                checkForUnsavedChanges('next');
-            } else {
-                slideCard('next');
-            }      
-        });
-
 
         $('#tiddlerModal .modal-content').css({
             'max-height': (Math.floor(pageHeight * 0.9)) + 'px'
@@ -749,12 +717,12 @@ var tmanager = (function () {
             $(iFrame).css({
                 'height': (Math.floor(pageHeight * 0.5)) + 'px'
             });
+            $(nextSlideToShow + ' iframe').removeAttr('id');
         }
 
-
-        if (direction === 'deleted') {
-            //$('#modalCarousel').find(".item.active .modal-dialog .modal-content").css('background-color', 'red');
-            $('#modalCarousel').find('.item.active').addClass('deleted');
+        if (data.bag && /_private$/.test(data.bag.name)) {
+            $(nextSlideToShow + ' .private i').removeClass('fa fa-unlock fa-2x');
+            $(nextSlideToShow + ' .private i').addClass('fa fa-lock fa-2x');
         }
 
         if (direction === null) {
@@ -898,7 +866,7 @@ var tmanager = (function () {
     }
 
     function expandCollapseAll() {
-        if ($('.sidebar-right-toggle i').hasClass('fa-expand')) {
+        if ($('[data-toggle=expand] i').hasClass('fa-expand')) {
             $('.card .panel-heading i.expand-toggle').removeClass('fa fa-chevron-up fa-2x');
             $('.card .panel-heading i.expand-toggle').addClass('fa fa-chevron-down fa-2x');
             $('.card .panel-body').closest('div').removeClass('expand');
@@ -913,8 +881,7 @@ var tmanager = (function () {
     function showAlert(alertType, alertText) {
         var alertContainer = $('div.alert-offcanvas'),
             exisingTop = alertContainer.css('top');
-//find('div.alert').animate('{top:"100%", opacity:0.0, height:"400px"}', 'slow')
-        //console.log(existingStyle);    
+  
         $('div.alert', alertContainer).addClass(alertType).html(alertText).parent().fadeIn(500).delay(1000).animate(
             {'top':'-=100px', 'opacity':'0'},
             '2000', function() {                            
@@ -923,7 +890,6 @@ var tmanager = (function () {
             }
         );
         
-        //$('.alert-offcanvas .alert').addClass(alertType).html(alertText).delay(2000).removeClass(alertType);        
     }
     
     function scrollToID(id, speed){
@@ -931,10 +897,7 @@ var tmanager = (function () {
             scrollToObject = $(id),
             currentObjLocation = (scrollToObject.offset().top - offSet),
             currentScrollLocation = $('#main').scrollTop(),
-            //targetOffset2 = $('#main').scrollTop() + (scrollToObject.offset().top - offSet),
             targetOffset = currentScrollLocation + currentObjLocation;
-
-        //console.log('div position top = ' + $(id).position().top + ', div offset = ' + $(id).offset().top + ', offset top = ' + $(id).offset().top);
         
         if (targetOffset != currentScrollLocation) {
             //Scroll and animate
@@ -994,10 +957,6 @@ var tmanager = (function () {
         });
      
         cb(matches);
-        console.log('matches :: ' + matchedNamesReqEx);
-        //$.each( $(".card .panel-heading h4 [name^='news-top-']"), function () {
-        //    $(this).hide();
-        //});
       };
     };
 
@@ -1040,23 +999,18 @@ var tmanager = (function () {
         if (cardIds) {
             if (cardIds !== '') {
                 $('.card').not(matchedCardIds).hide(); 
-                $('.card ' + matchedCardIds).show();
+                $(matchedCardIds).show();
             } else {
                 //No match so hide them all
-                $('.card ').hide();
+                $('.card').hide();
             }
         } else {
             //No ids passed in, so show them all
-            $('.card ').show();
+            $('.card').show();
         }
 
-        $('.cardclearfix').remove();
+        setClearFixes();
 
-        $('.card').filter(':visible').each(function( index, card) {
-            if (index % 3 === 0) {                
-                $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
-            }
-        });
         checkScrollbarVisibility();
     }
 
@@ -1092,6 +1046,14 @@ var tmanager = (function () {
         };
     }
 
+    function setClearFixes() {
+        $('.cardclearfix').remove();
+        $('.card').filter(':visible').each(function( index, card) {
+            if (index % 3 === 0) {                
+                $( card ).before('<div class="clearfix visible-xs-block cardclearfix"></div>');
+            }
+        });
+    }
 
     function addToLocalStorage(name, value) {
         if (typeof(Storage) != "undefined") {
@@ -1126,7 +1088,9 @@ var tmanager = (function () {
         mySPA.getTiddlerDetail(currentModalTiddlerIndex, direction, getTiddlerDetailSuccessCallback);
     }
 
-
+    function isCreatingNewTiddler() {
+        return !$('.carousel-control').is(":visible");
+    }
 
     /*
      * End of private functions
@@ -1224,7 +1188,6 @@ var tmanager = (function () {
 
         filterBy.keyup(function () {
             if ($('#filterBy').val() === '') {
-                console.log('empty');
                 showFilteredCards();
             }
         });        
@@ -1334,6 +1297,21 @@ var tmanager = (function () {
             }
         });
 
+        $('.carousel-control.left').click(function () {
+            if ($('#modalCarousel .carousel-inner .item.active .save-button').is(":visible")) {
+                checkForUnsavedChanges('prev');
+            } else {
+                slideCard('prev');
+            }
+        });
+        $('.carousel-control.right').click(function () {
+            if ($('#modalCarousel .carousel-inner .item.active .save-button').is(":visible")) {
+                checkForUnsavedChanges('next');
+            } else {
+                slideCard('next');
+            }      
+        });
+
         $( window ).resize(function() {
             checkScrollbarVisibility();
         });
@@ -1353,7 +1331,7 @@ var tmanager = (function () {
     init: function () {
         // Get the HTML to represent the templates
         var cardTemplateScript = $('#cardTemplate').html(),
-            tiddlerModalTemplateScript = $('#tiddlerModalTemplate').html();
+            slideTemplateScript = $('#slideTemplate').html();
     	
     	mySPA = new SPA('http://' + window.location.hostname);
         
@@ -1368,7 +1346,7 @@ var tmanager = (function () {
         
         // Compile the templates
         cardTemplate = Handlebars.compile(cardTemplateScript);
-        tiddlerModalTemplate = Handlebars.compile(tiddlerModalTemplateScript);  
+        slideTemplate = Handlebars.compile(slideTemplateScript);
 
         $('#filterBy').focus();      
     },
@@ -1470,8 +1448,6 @@ var tmanager = (function () {
         } else if (callingAction === 'close') {
             $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('edit-control-display-toggle');
             $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('edit-control-display-toggle');
-
-
             $('#tiddlerModal').modal('hide');
         }
     }

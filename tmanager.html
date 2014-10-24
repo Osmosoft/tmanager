@@ -155,7 +155,18 @@
     -->
 	<!--tiddler modal-->
 	<div id="tiddlerModal" class="modal fade" tabindex="-1" role="dialog"
-		aria-hidden="true"></div>
+		aria-hidden="true">
+        <div id="modalCarousel" class="carousel slide" data-ride="carousel" data-interval="false">
+            <div id="carouselContent" class="carousel-inner">           	
+            	<!-- slide 1 -->
+                <div id ="slide1" class="item active"></div>
+                <!-- slide 2 -->
+                <div id ="slide2" class="item"></div>
+            </div> <!-- carousel-inner -->
+			<a class="carousel-control left" href="#modalCarousel"><i class="fa fa-chevron-circle-left fa-2x"></i></a>
+      		<a class="carousel-control right" href="#modalCarousel"><i class="fa fa-chevron-circle-right fa-2x"></i></a>
+		</div>
+	</div>
 
 
 	<!--Delete Confirm Modal Dialog-->
@@ -280,143 +291,69 @@
         </div>
     </script>
 
-	<!-- the tiddler modal template -->
-	<script id="tiddlerModalTemplate" type="text/x-handlebars-template">
-        <div id="modalCarousel" class="carousel slide" data-ride="carousel" data-interval="false">
-
-            <div class="carousel-inner">
-            	
-            	<!-- slide 1 -->
-                <div class="item active">        			
-			        <div class="modal-dialog">
-			            <div class="modal-content">
-			                <div class="modal-header">
-			                    <span class="pull-right">
-									{{#contains slide1.permissions "write"}}
-			                    		<a href="#" onClick="tmanager.editTiddler();" class="edit-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Edit"><i class="fa fa-edit fa-2x"></i></a>
-			                    		<a href="#" onClick="tmanager.saveTiddler();" class="save-button edit-control-display-toggle" role="button" data-toggle="tooltip" data-placement="bottom" title="Save"><i class="fa fa-check-square-o fa-2x"></i></a>
-									{{/contains}}
-			                    	{{#contains slide1.permissions "delete"}}
-										<a href="#" onClick="tmanager.confirmDeleteTiddler();" class="delete-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Delete"><i class="fa fa-trash-o fa-2x"></i></a>
-									{{/contains}}
-									<a href="#" onClick="" class="close-button" role="button" data-dismiss="modal" data-toggle="tooltip" data-placement="bottom" title="Close"><i class="fa fa-times fa-2x"></i></a>	
-			                    </span>
-			                    <h2 class="text-center title-header" id="tiddlerModalTitle">{{slide1.title}}</h2>
-			                    <input type="text" class="form-control title-edit edit-control-display-toggle" placeholder="Title" autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top;font-size: 20px;text-align: center;" value="{{slide1.title}}">
-			                </div>
-			                <div class="modal-body">
-			                    <div class="col-md-12">                        
-			                        {{#ifCond slide1.type '==' "image/svg+xml"}}
-			                    		{{{slide1.text}}}
-			                    	{{else}}
-			                    		{{#ifCond slide1.type '==' "image/png"}}
-				                    		<img src="{{slide1.uri}}"/>
-			                    		{{else}}
-											{{#ifCond slide1.type '==' "image/jpeg"}}
-					                    		<img src="{{slide1.uri}}"/>
-				                    		{{else}}
-				                    			{{#ifCond slide1.type '==' "text/html"}}
-						                    		<iframe sandbox="allow-same-origin" id="slide1IFrame" frameborder="0"></iframe>
-					                    		{{else}}
-					                    			{{#if slide1.render}}
-					                    	  			{{{slide1.render}}}
-				                    				{{else}}
-					                      				<pre>{{slide1.text}}</pre>
-				                    				{{/if}}
-				                    			{{/ifCond}}	
-											{{/ifCond}}
-				                    	{{/ifCond}}	
-			                    	{{/ifCond}}	
-			                    </div>
-			                </div>
-			                <div class="modal-footer">
-			                    <span class="card-tags pull-left" style="margin:0px auto; width:100%; text-align:left">
-			                    		<div style="float:left; margin:0; width:15em%;">
-			                    			<i class="fa fa-tag fa-2x"></i>&nbsp
-			                    		</div>
-			                    		<div style="float:left; margin:0; width:80%;">                                        			
-			                    				{{#each slide1.tags}}
-			                        				<span class="label label-primary tags">{{this}}</span>
-			                        			{{/each}}
-			                        			<input type="text" class="form-control tags-edit edit-control-display-toggle" placeholder="Tags..." autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top;font-size: 20px;">
-			                    		</div>                    	
-			                    	<button class="btn pull-right" data-dismiss="modal" aria-hidden="true">OK</button>
-			                    </span>			                    
-			                </div>
-			            </div>
-	        		</div>
-	        	</div>
-	        	
-	        	
-            	<!-- slide 2 -->
-                <div class="item">  
-			        <div class="modal-dialog">
-			            <div class="modal-content">
-			                <div class="modal-header">
-			                   <span class="pull-right">
-									{{#contains slide2.permissions "write"}}
-			                    		<a href="#" onClick="tmanager.editTiddler();" class="edit-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Edit"><i class="fa fa-edit fa-2x"></i></a>
-			                    		<a href="#" onClick="tmanager.saveTiddler();" class="save-button edit-control-display-toggle" role="button" data-toggle="tooltip" data-placement="bottom" title="Save"><i class="fa fa-check-square-o fa-2x"></i></a>
-									{{/contains}}
-			                    	{{#contains slide2.permissions "delete"}}
-										<a href="#" onClick="tmanager.confirmDeleteTiddler();" class="delete-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Delete"><i class="fa fa-trash-o fa-2x"></i></a>
-									{{/contains}}
-									<a href="#" onClick="" class="close-button" role="button" data-dismiss="modal" data-toggle="tooltip" data-placement="bottom" title="Close"><i class="fa fa-times fa-2x"></i></a>				
-			                    </span>
-			                    <h2 class="text-center title-header" id="tiddlerModalTitle">{{slide2.title}}</h2>
-			                    <input type="text" class="form-control title-edit edit-control-display-toggle" placeholder="Title" autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top;font-size: 20px;text-align: center;" value="{{slide2.title}}">
-			                </div>
-			                <div class="modal-body">
-			                    <div class="col-md-12">                        
-			                        {{#ifCond slide2.type '==' "image/svg+xml"}}
-			                    		{{{slide2.text}}}
-			                    	{{else}}
-			                    		{{#ifCond slide2.type '==' "image/png"}}
-				                    		<img src="{{slide2.uri}}"/>
-			                    		{{else}}
-											{{#ifCond slide2.type '==' "image/jpeg"}}
-					                    		<img src="{{slide2.uri}}"/>
-				                    		{{else}}
-				                    			{{#ifCond slide2.type '==' "text/html"}}
-						                    		<iframe sandbox="allow-same-origin" id="slide2IFrame" frameborder="0"></iframe>
-					                    		{{else}}
-					                    			{{#if slide2.render}}
-					                    	  			{{{slide2.render}}}
-				                    				{{else}}
-					                      				<pre>{{slide2.text}}</pre>
-				                    				{{/if}}
-				                    			{{/ifCond}}	
-											{{/ifCond}}
-				                    	{{/ifCond}}	
-			                    	{{/ifCond}}	
-			                    </div>
-			                </div>
-			                <div class="modal-footer">
-			                    <span class="card-tags pull-left" style="margin:0px auto; width:100%; text-align:left">
-			                    		<div style="float:left; margin:0; width:15em%;">
-                    						<i class="fa fa-tag fa-2x"></i>&nbsp
-			                    		</div>
-			                    		<div style="float:left; margin:0; width:80%;">                                        			
-		                    				{{#each slide2.tags}}
-		                        				<span class="label label-primary tags">{{this}}</span>
-		                        			{{/each}}
-		                        			<input type="text" class="form-cont	rol tags-edit edit-control-display-toggle" placeholder="Tags..." autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top;font-size: 20px;">
-			                    		</div>
-			                    	<button class="btn pull-right" data-dismiss="modal" aria-hidden="true">OK</button> 
-			                    </span>                 			                    
-			                </div>
-			            </div>
-	        		</div>
-	        	</div>
-	        	
-            </div> <!-- carousel-inner -->
-	
-			<a class="carousel-control left" href="#modalCarousel"><i class="fa fa-chevron-circle-left fa-2x"></i></a>
-      		<a class="carousel-control right" href="#modalCarousel"><i class="fa fa-chevron-circle-right fa-2x"></i></a>
-
-		</div> <!-- carousel ->
-    </script>
-
+    <!-- slide template -->
+	<script id="slideTemplate" type="text/x-handlebars-template">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="pull-right">
+						{{#contains permissions "write"}}
+                    		<a href="#" onClick="tmanager.editTiddler();" class="edit-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Edit"><i class="fa fa-edit fa-2x"></i></a>
+                    		<a href="#" onClick="tmanager.saveTiddler();" class="save-button edit-control-display-toggle" role="button" data-toggle="tooltip" data-placement="bottom" title="Save"><i class="fa fa-check-square-o fa-2x"></i></a>
+						{{/contains}}
+                    	{{#contains permissions "delete"}}
+							<a href="#" onClick="tmanager.confirmDeleteTiddler();" class="delete-button" role="button" data-toggle="tooltip" data-placement="bottom" title="Delete"><i class="fa fa-trash-o fa-2x"></i></a>
+						{{/contains}}
+						<a href="#" onClick="" class="close-button" role="button" data-dismiss="modal" data-toggle="tooltip" data-placement="bottom" title="Close"><i class="fa fa-times fa-2x"></i></a>	
+                    </span>
+                    <h2 class="text-center title-header" id="tiddlerModalTitle">{{title}}</h2>
+                    <input type="text" class="form-control title-edit edit-control-display-toggle" placeholder="Title" autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top;font-size: 20px;text-align: center;" value="{{title}}">
+                </div>
+                <div class="modal-body">
+                    <div class="col-md-12">                        
+                        {{#ifCond type '==' "image/svg+xml"}}
+                    		{{{text}}}
+                    	{{else}}
+                    		{{#ifCond type '==' "image/png"}}
+	                    		<img src="{{uri}}"/>
+                    		{{else}}
+								{{#ifCond type '==' "image/jpeg"}}
+		                    		<img src="{{uri}}"/>
+	                    		{{else}}
+	                    			{{#ifCond type '==' "text/html"}}
+			                    		<iframe sandbox="allow-same-origin" id="IFrame" class='activeIFrame' frameborder="0"></iframe>
+		                    		{{else}}
+		                    			{{#if render}}
+		                    	  			{{{render}}}
+	                    				{{else}}
+		                      				<pre>{{text}}</pre>
+	                    				{{/if}}
+	                    			{{/ifCond}}	
+								{{/ifCond}}
+	                    	{{/ifCond}}	
+                    	{{/ifCond}}	
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <span class="card-tags pull-left" style="margin:0px auto; width:100%; text-align:left">
+                		<div style="float:left; margin:0; width:15em%;">
+                			<i class="fa fa-tag fa-2x"></i>&nbsp
+                		</div>
+                		<div style="float:left; margin:0; width:80%;">                                        			
+                				{{#each tags}}
+                    				<span class="label label-primary tags">{{this}}</span>
+                    			{{/each}}
+                    			<input type="text" class="form-control tags-edit edit-control-display-toggle" placeholder="Tags..." autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top;font-size: 20px;">
+                		</div>                    	
+                    	
+                    	<div class="pull-right" style="float:left; margin:0; width:15em%;">			                    			
+                    			<a href="#" onClick="alert('private/public');" class="private" role="button" data-toggle="tooltip" data-placement="bottom" title="Private/Public"><i class="fa fa-unlock fa-2x"></i></a>
+                    	</div>
+                    </span>			                    
+                </div>
+            </div>
+		</div>
+	</script>
 
 	<!-- script references -->			
 	<!--[if !IE]> -->
