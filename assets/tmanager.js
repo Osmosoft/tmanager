@@ -247,7 +247,61 @@ var tmanager = (function () {
         if (indexPos != -1) {
             this.tiddlers[indexPos] = newTiddler;
         }
-    };          
+    };
+
+    SPA.prototype.changePrivacy = function(tiddlerIndex, makePrivate, successCallback) {            
+
+            var spa = this,
+                tiddler = this.tiddlers[tiddlerIndex],
+                isPrivate = tiddler.bag && /_private$/.test(tiddler.bag.name),
+                defaultBag = this.tsStore.getDefaults().pushTo,
+                newBag,
+                previousTiddlerRevision = tiddler.revision;
+
+            
+
+            if (isPrivate) {
+                newBag = tiddler.bag.name.replace(/_private$/, '_public');                
+            } else {
+                newBag = tiddler.bag.name.replace(/_public$/, '_private');
+            }
+
+            if (newBag !== (tiddler.bag && tiddler.bag.name)) {
+                //deleteBagLater = tiddler.bag;
+                this.tsStore.remove(tiddler);
+                tiddler.bag = new tiddlyweb.Bag(newBag, '/');
+                this.tsStore.add(tiddler);
+                this.tsStore.save(tiddler, function(response, error){
+                    if (response) {
+                        showAlert('alert-success', 'Privacy changed.');
+                        successCallback(response, previousTiddlerRevision);
+                    } else if (error.name === 'SaveError') {
+                        showAlert('alert-danger', 'There was a problem changing the privacy. Please try again');
+                    } else if (error.name === 'EmptyError') {
+                        showAlert('alert-info', 'There was nothing to change privacy on.');
+                    }
+                });
+            }
+
+/*            var $el = $(ev.target),
+                isPrivate = $el.prop('checked'),
+                defaultBag = store.getDefaults().pushTo,
+                newBag;
+
+            if (isPrivate) {
+                newBag = defaultBag.name.replace(/_public$/, '_private');
+            } else {
+                newBag = defaultBag.name.replace(/_private$/, '_public');
+            }
+
+            if (newBag !== (tiddler.bag && tiddler.bag.name)) {
+                deleteBagLater = tiddler.bag;
+                store.remove(tiddler);
+                tiddler.bag = new tiddlyweb.Bag(newBag, '/');
+                store.add(tiddler);
+            }
+*/
+        }        
     
     /*
      * Privates
@@ -322,37 +376,7 @@ var tmanager = (function () {
     }
     
     function renderTiddlersAsCardsCallback(tiddlers) {
-/*        var col_1_html = '<div class="col-md-4">',
-            col_2_html = '<div class="col-md-4">',
-            col_3_html = '<div class="col-md-4">',
-            item = 0,
-            cards_html = '',
-            col_check;
 
-        $.each(tiddlers, function () {
-            col_check = item % 3;
-            this.tiddlerIndex = item;
-            switch (col_check) {
-            case 0:
-                col_1_html += cardTemplate(this);
-                cards_html += '<div class="clearfix visible-xs-block cardclearfix"></div>';
-                break;
-            case 1:
-                col_2_html += cardTemplate(this);
-                break;
-            default:
-                col_3_html += cardTemplate(this);
-            }
-
-            //cards_html += '<li class="col-md-4">' + cardTemplate(this) + '</li>';
-            cards_html +=  cardTemplate(this);
-            item = item + 1;
-        });
-
-        col_1_html = col_1_html + '</div>';
-        col_2_html = col_2_html + '</div>';
-        col_3_html = col_3_html + '</div>';
-*/
         var item = 0,
             cards_html = '',
             col_check;
@@ -362,9 +386,10 @@ var tmanager = (function () {
             this.tiddlerIndex = item;
             if (col_check === 0) {
                 cards_html += '<div class="clearfix visible-xs-block cardclearfix"></div>';
-            }
-            //cards_html += '<li class="col-md-4">' + cardTemplate(this) + '</li>';
-            cards_html +=  cardTemplate(this);            
+            }   
+            
+            cards_html +=  renderCard(this);
+
             item = item + 1;
         });
 
@@ -406,14 +431,16 @@ var tmanager = (function () {
             } else if (direction === 'saved') {
                 //update the tiddler in the main page body
                 revision = data.revision;
-                card_html =  $(cardTemplate(data));
+                
+                card_html =  $(renderCard(data));
 
-                //Add the toggle to the new cards for the expand/collapse chevron
+                //Add the toggle to the new card for the expand/collapse chevron
                 card_html.find('[data-toggle=expand-panel]').click(function () {
                     card_html.find($('i', this).toggleClass('fa fa-chevron-up fa-2x'));
                     card_html.find($('i', this).toggleClass('fa fa-chevron-down fa-2x'));
                     card_html.find($('.panel-body', $(this).parent().parent().parent()).toggleClass('expand'));
                 });
+
 
                 //replace the old tiddler in the tiddler array
                 mySPA.updateTiddlerInResultSet(workingTiddlerRevision, data);
@@ -447,18 +474,18 @@ var tmanager = (function () {
                     //New tiddler saved
                     //Get the revision of the previous tiddler in the list so this tiddler can
                     //be displayed after it
-                    var previsousTiddlerRevision = -1;
+                    var previousTiddlerRevision = -1;
                     $.each(mySPA.tiddlers, function( index, value ) {
                         if (value.title === data.title && value.bag.name === data.bag.name) {
                             if (index > 0) {
-                                previsousTiddlerRevision = mySPA.tiddlers[index -1].revision;                                
+                                previousTiddlerRevision = mySPA.tiddlers[index -1].revision;                                
                             }
                             return false;
                         }
                     });
-                    if (previsousTiddlerRevision !== -1) {
+                    if (previousTiddlerRevision !== -1) {
                         //Insert after previous tiddler
-                        $(card_html).insertAfter('#card_' + previsousTiddlerRevision); 
+                        $(card_html).insertAfter('#card_' + previousTiddlerRevision); 
                     } else {
                         //Insert as first card
                         $('#cards').prepend(card_html); 
@@ -518,6 +545,11 @@ var tmanager = (function () {
             $('#modalCarousel .carousel-inner .item.active .title-edit').toggleClass('edit-control-display-toggle');
             $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-header input').focus();
             $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-header input').select();
+
+            //And also all them to set the privacy
+            $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-footer .private .privacy').toggleClass('edit-control-display-toggle');
+            $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-footer .private .privacy-edit').toggleClass('edit-control-display-toggle');
+
         } else {
             //Check for any existing tags
             $.each(data.tags, function (index, value) {
@@ -592,6 +624,15 @@ var tmanager = (function () {
             }
         );
         checkScrollbarVisibility();   
+    }
+
+    function privacyChangedSuccessCallback(data, previousTiddlerRevision) {
+
+        //replace the old tiddler in the tiddler array
+        mySPA.updateTiddlerInResultSet(previousTiddlerRevision, data);
+
+        $('#card_' + previousTiddlerRevision).replaceWith(renderCard(data));
+
     }
 
     function getTiddlerDetailErrorCallback(error) {
@@ -682,7 +723,7 @@ var tmanager = (function () {
 
         var showCarouselControls = (!isCreatingNewTiddler()) || direction === null;
 
-        if (!showCarouselControls || direction === 'add') {
+        if (!showCarouselControls || direction === 'add') {            
             $('.carousel-control').hide();
         } else {
             $('.carousel-control').show();
@@ -721,8 +762,9 @@ var tmanager = (function () {
         }
 
         if (data.bag && /_private$/.test(data.bag.name)) {
-            $(nextSlideToShow + ' .private i').removeClass('fa fa-unlock fa-2x');
+            $(nextSlideToShow + ' .private i').removeClass('fa fa-unlock-alt fa-2x');
             $(nextSlideToShow + ' .private i').addClass('fa fa-lock fa-2x');
+            $(nextSlideToShow + ' .private i').attr("title", "Private");
         }
 
         if (direction === null) {
@@ -737,6 +779,23 @@ var tmanager = (function () {
             $('#tiddlerModal').modal('show');            
         }
 
+    }
+
+    function renderCard(data) {
+        var card_html,
+            card_dom;
+
+        card_html = cardTemplate(data);
+
+        //Set the privacy icon       
+        if (data.bag && /_private$/.test(data.bag.name)) {
+            card_dom = $('<div/>').html(card_html);
+            $('.privacy i', card_dom).removeClass('fa fa-unlock-alt fa-2x');
+            $('.privacy i', card_dom).addClass('fa fa-lock fa-2x');
+            $('.privacy i', card_dom).attr("title", "Private");
+            card_html = card_dom.html();
+        }
+        return card_html;
     }
 
     function updateTypeahead() {
@@ -875,6 +934,16 @@ var tmanager = (function () {
             $('.card .panel-heading i.expand-toggle').removeClass('fa fa-chevron-down fa-2x');
             $('.card .panel-heading i.expand-toggle').addClass('fa fa-chevron-up fa-2x');
             $('.card .panel-body').closest('div').addClass('expand');
+        }
+    }
+
+    function changePrivacyIcon() {
+        var privacyIcon = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-footer .private .privacy-edit i');
+
+        if (privacyIcon.hasClass('fa fa-unlock-alt fa-2x')) {
+            privacyIcon.removeClass('fa fa-unlock-alt fa-2x').addClass('fa fa-lock fa-2x').attr("title", "Change to Public");
+        } else {
+            privacyIcon.removeClass('fa fa-lock fa-2x').addClass('fa fa-unlock-alt fa-2x').attr("title", "Change to Private");
         }
     }
 
@@ -1382,6 +1451,12 @@ var tmanager = (function () {
         mySPA.getTiddlerDetail(currentModalTiddlerIndex, null, getTiddlerDetailSuccessCallback);
     },
     
+    changePrivacy: function (revision) {
+        //currentModalTiddlerIndex = getTiddlerIndexFromRevision(revision);  
+        //mySPA.changePrivacy(currentModalTiddlerIndex, null, privacyChangedSuccessCallback);
+        changePrivacyIcon();
+    },
+
     editTiddler: function () {
         mySPA.getTiddlerDetail(currentModalTiddlerIndex, null, getTiddlerDetailForEditSuccessCallback);
     },
@@ -1397,8 +1472,18 @@ var tmanager = (function () {
 
             tiddler.title = $('.modal-header .title-edit', updatedTiddlerDetails).val();
             
-            tiddler.tags = [];
+            if (!tiddler.revision) {
+                //A new tiddler, so set it's bag
+                if ($('.modal-footer .private .privacy-edit i', updatedTiddlerDetails).hasClass('fa fa-unlock-alt fa-2x')) {
+                    //Tiddler should be public
+                    tiddler.bag = new tiddlyweb.Bag(mySPA.space + '_public', mySPA.host)
+                } else {
+                    //Tiddler should be private
+                    tiddler.bag = new tiddlyweb.Bag(mySPA.space + '_private', mySPA.host)
+                }     
+            }
 
+            tiddler.tags = [];
             $.each(tags.match(tagsRegEx), function(index, value) {
                 if (value !== '') {
                     if (/^\[\[.*\]\]$/.test(value)) {

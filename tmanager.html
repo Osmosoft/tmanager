@@ -277,12 +277,15 @@
                     <span class="card-tags">
                     	<div style="margin:0px auto; width:100%">
                     		<div style="float:left; margin:0; width:15em%;">
-                    			<i class="fa fa-tag fa-2x"></i>&nbsp
+                    			<i class="fa fa-tag fa-2x" data-toggle="tooltip" data-placement="bottom" title="Tags"></i>&nbsp
                     		</div>
                     		<div style="float:left; margin:0; width:80%">                                        			
                     				{{#each tags}}
                         				<span class="label label-primary tags">{{this}}</span>
                         			{{/each}}
+                    		</div>
+                    		<div class="privacy pull-right">                  			
+                    			<i class="fa fa-unlock-alt fa-2x" data-toggle="tooltip" data-placement="bottom" title="Public"></i>
                     		</div>
                     	</div>                    	
                     </span>                    
@@ -337,7 +340,7 @@
                 <div class="modal-footer">
                     <span class="card-tags pull-left" style="margin:0px auto; width:100%; text-align:left">
                 		<div style="float:left; margin:0; width:15em%;">
-                			<i class="fa fa-tag fa-2x"></i>&nbsp
+                			<i class="fa fa-tag fa-2x" data-toggle="tooltip" data-placement="bottom" title="Tags"></i>&nbsp
                 		</div>
                 		<div style="float:left; margin:0; width:80%;">                                        			
                 				{{#each tags}}
@@ -346,9 +349,11 @@
                     			<input type="text" class="form-control tags-edit edit-control-display-toggle" placeholder="Tags..." autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top;font-size: 20px;">
                 		</div>                    	
                     	
-                    	<div class="pull-right" style="float:left; margin:0; width:15em%;">			                    			
-                    			<a href="#" onClick="alert('private/public');" class="private" role="button" data-toggle="tooltip" data-placement="bottom" title="Private/Public"><i class="fa fa-unlock fa-2x"></i></a>
+                    	<div class="pull-right private" style="float:left; margin:0; width:15em%;">			                    		
+                    		<i class="privacy fa fa-unlock-alt fa-2x" data-toggle="tooltip" data-placement="bottom" title="Public"></i>
+                    		<a href="#" onClick="tmanager.changePrivacy();" class="privacy-edit edit-control-display-toggle" role="button" data-toggle="tooltip" data-placement="bottom" title="Close"><i class="fa fa-unlock-alt fa-2x" data-toggle="tooltip" data-placement="bottom" title="Change to private"></i></a>
                     	</div>
+
                     </span>			                    
                 </div>
             </div>
