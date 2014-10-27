@@ -73,7 +73,7 @@ var tmanager = (function () {
     }
 
     SPA.prototype.getInitialTiddlers = function (tiddlySpace, successCallback, errorCallback) {
-        console.log('Getting initial tiddlers from host ' + this.host);
+        logToConsole('Getting initial tiddlers from host ' + this.host);
 
         var spa = this;
 
@@ -84,7 +84,7 @@ var tmanager = (function () {
 
             spa.tiddlers = spa.tsStore(excludeQuery).unique().sort('title');
             
-            console.log('Number of tiddlers returned = ' + spa.tiddlers.length);
+            logToConsole('Number of tiddlers returned = ' + spa.tiddlers.length);
             
             //Set the space name by using the default push location
             spa.space = spa.tsStore.getDefaults().pushTo.name.replace(regex, '')
@@ -95,7 +95,7 @@ var tmanager = (function () {
     };
 
     SPA.prototype.getTiddlers = function (tiddlySpace, tiddlyQuery, successCallback, errorCallback) {
-        console.log('Submitting query... - ' + tiddlyQuery + ' to host ' + this.host);
+        logToConsole('Submitting query... - ' + tiddlyQuery + ' to host ' + this.host);
 
         var spa = this;
 
@@ -111,13 +111,13 @@ var tmanager = (function () {
 
             successCallback(spa.tiddlers);
 
-            console.log('Number of tiddlers returned = ' + spa.tiddlers.length);
+            logToConsole('Number of tiddlers returned = ' + spa.tiddlers.length);
 
         });
     };
 
     SPA.prototype.getTiddlerDetail = function(tiddlerIndex, flags, successCallback) {
-        console.log('Getting tiddler for index position - ' + tiddlerIndex);
+        logToConsole('Getting tiddler for index position - ' + tiddlerIndex);
 
         var spa = this;
 
@@ -400,15 +400,13 @@ var tmanager = (function () {
 
         //Add the toggle to the new cards for the expand/collapse chevron
         $('[data-toggle=expand-panel]').click(function () {
-            $('i', this).toggleClass('fa fa-chevron-up fa-2x');
-            $('i', this).toggleClass('fa fa-chevron-down fa-2x');
+            $('i', this).toggleClass('fa fa-chevron-up fa-2x').toggleClass('fa fa-chevron-down fa-2x');
             $('.panel-body', $(this).parent().parent().parent()).toggleClass('expand');
         });
 
         //Resert the overall expand and collapse button
         if ($('.sidebar-right-toggle i').hasClass('fa-compress')) {
-            $('.sidebar-right-toggle i').toggleClass('fa fa-expand');
-            $('.sidebar-right-toggle i').toggleClass('fa fa-compress');
+            $('.sidebar-right-toggle i').toggleClass('fa fa-expand').toggleClass('fa fa-compress');
         }
         checkScrollbarVisibility();
     }
@@ -436,8 +434,7 @@ var tmanager = (function () {
 
                 //Add the toggle to the new card for the expand/collapse chevron
                 card_html.find('[data-toggle=expand-panel]').click(function () {
-                    card_html.find($('i', this).toggleClass('fa fa-chevron-up fa-2x'));
-                    card_html.find($('i', this).toggleClass('fa fa-chevron-down fa-2x'));
+                    card_html.find($('i', this).toggleClass('fa fa-chevron-up fa-2x').toggleClass('fa fa-chevron-down fa-2x'));
                     card_html.find($('.panel-body', $(this).parent().parent().parent()).toggleClass('expand'));
                 });
 
@@ -464,8 +461,7 @@ var tmanager = (function () {
                     if ($('#card_' + workingTiddlerRevision + ' .panel .panel-body').hasClass('expand')) {                    
                        //var tree = $(card_html);
                         card_html.find('.panel-body').addClass('expand');
-                        $('i.expand-toggle', card_html).removeClass('fa fa-chevron-down fa-2x');
-                        $('i.expand-toggle', card_html).addClass('fa fa-chevron-up fa-2x');
+                        $('i.expand-toggle', card_html).removeClass('fa fa-chevron-down fa-2x').addClass('fa fa-chevron-up fa-2x');
                     }
 
                     $('#card_' + workingTiddlerRevision).replaceWith(card_html);  
@@ -505,7 +501,8 @@ var tmanager = (function () {
     }
 
     function getTiddlerDetailForEditSuccessCallback(data, flags) {
-        var editArea = $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-body'),
+        var activeSlide = $('#modalCarousel .carousel-inner .item.active');
+            editArea = $('.modal-dialog .modal-content .modal-body', activeSlide),
             tagsText = '';
 
         if (data.type === 'text/html') {
@@ -532,23 +529,21 @@ var tmanager = (function () {
             }
         } else {
             editArea.html('<textarea class="form-control" rows="15"></textarea>');
-            $('textarea', editArea).val(data.text);
-            $('textarea', editArea).focus();
+            $('textarea', editArea).val(data.text).focus();
         }
 
-        $('#modalCarousel .carousel-inner .item.active .edit-button').toggleClass('edit-control-display-toggle');
-        $('#modalCarousel .carousel-inner .item.active .save-button').toggleClass('edit-control-display-toggle');
+        $('.edit-button', activeSlide).toggleClass('edit-control-display-toggle');
+        $('.save-button', activeSlide).toggleClass('edit-control-display-toggle');
 
         if (!data.revision) {
             //New tidder, so allow editing of the title
-            $('#modalCarousel .carousel-inner .item.active .title-header').toggleClass('edit-control-display-toggle');
-            $('#modalCarousel .carousel-inner .item.active .title-edit').toggleClass('edit-control-display-toggle');
-            $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-header input').focus();
-            $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-header input').select();
+            $('.title-header', activeSlide).toggleClass('edit-control-display-toggle');
+            $('.title-edit', activeSlide).toggleClass('edit-control-display-toggle');
+            $('.modal-dialog .modal-content .modal-header input', activeSlide).focus().select();
 
             //And also all them to set the privacy
-            $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-footer .private .privacy').toggleClass('edit-control-display-toggle');
-            $('#modalCarousel .carousel-inner .item.active .modal-dialog .modal-content .modal-footer .private .privacy-edit').toggleClass('edit-control-display-toggle');
+            $('.modal-dialog .modal-content .modal-footer .private .privacy', activeSlide).toggleClass('edit-control-display-toggle');
+            $('.modal-dialog .modal-content .modal-footer .private .privacy-edit', activeSlide).toggleClass('edit-control-display-toggle');
 
         } else {
             //Check for any existing tags
@@ -563,11 +558,11 @@ var tmanager = (function () {
                 //Strip the last space
                 tagsText = tagsText.replace(/ $/, '');
             }
-            $('#modalCarousel .carousel-inner .item.active .tags-edit').val(tagsText);
+            $('.tags-edit', activeSlide).val(tagsText);
         }
 
-        $('#modalCarousel .carousel-inner .item.active .tags').toggleClass('edit-control-display-toggle');
-        $('#modalCarousel .carousel-inner .item.active .tags-edit').toggleClass('edit-control-display-toggle');
+        $('.tags', activeSlide).toggleClass('edit-control-display-toggle');
+        $('.tags-edit', activeSlide).toggleClass('edit-control-display-toggle');
 
 
         mySPA.setWorkingTiddler(data);
@@ -637,12 +632,12 @@ var tmanager = (function () {
 
     function getTiddlerDetailErrorCallback(error) {
         showAlert('alert-danger', 'Error retrieving data: ' + error);
-        console.log('Error retrieving data: ' + error);
+        logToConsole('Error retrieving data: ' + error);
     }
     
     function retrievalErrorCallback(error) {
         showAlert('alert-danger', 'Error retrieving data: ' + error);
-        console.log('Error retrieving data: ' + error);
+        logToConsole('Error retrieving data: ' + error);
     }
     
     /*
@@ -762,9 +757,7 @@ var tmanager = (function () {
         }
 
         if (data.bag && /_private$/.test(data.bag.name)) {
-            $(nextSlideToShow + ' .private i').removeClass('fa fa-unlock-alt fa-2x');
-            $(nextSlideToShow + ' .private i').addClass('fa fa-lock fa-2x');
-            $(nextSlideToShow + ' .private i').attr("title", "Private");
+            $(nextSlideToShow + ' .private i').removeClass('fa fa-unlock-alt fa-2x').addClass('fa fa-lock fa-2x').attr("title", "Private");
         }
 
         if (direction === null) {
@@ -790,9 +783,7 @@ var tmanager = (function () {
         //Set the privacy icon       
         if (data.bag && /_private$/.test(data.bag.name)) {
             card_dom = $('<div/>').html(card_html);
-            $('.privacy i', card_dom).removeClass('fa fa-unlock-alt fa-2x');
-            $('.privacy i', card_dom).addClass('fa fa-lock fa-2x');
-            $('.privacy i', card_dom).attr("title", "Private");
+            $('.privacy i', card_dom).removeClass('fa fa-unlock-alt fa-2x').addClass('fa fa-lock fa-2x').attr("title", "Private");
             card_html = card_dom.html();
         }
         return card_html;
@@ -926,13 +917,11 @@ var tmanager = (function () {
 
     function expandCollapseAll() {
         if ($('[data-toggle=expand] i').hasClass('fa-expand')) {
-            $('.card .panel-heading i.expand-toggle').removeClass('fa fa-chevron-up fa-2x');
-            $('.card .panel-heading i.expand-toggle').addClass('fa fa-chevron-down fa-2x');
+            $('.card .panel-heading i.expand-toggle').removeClass('fa fa-chevron-up fa-2x').addClass('fa fa-chevron-down fa-2x');
             $('.card .panel-body').closest('div').removeClass('expand');
         } else {
             $('.card .panel-heading .expand-toggle').trigger('click');
-            $('.card .panel-heading i.expand-toggle').removeClass('fa fa-chevron-down fa-2x');
-            $('.card .panel-heading i.expand-toggle').addClass('fa fa-chevron-up fa-2x');
+            $('.card .panel-heading i.expand-toggle').removeClass('fa fa-chevron-down fa-2x').addClass('fa fa-chevron-up fa-2x');
             $('.card .panel-body').closest('div').addClass('expand');
         }
     }
@@ -1103,14 +1092,12 @@ var tmanager = (function () {
         if (hasVerticalScroll($('#main').get(0))) {
             var sidebarright = $('#sidebar-right');
             if (!(sidebarright).hasClass('sidebar-right-scrollbar-visible-toggle')) { 
-                sidebarright.addClass('sidebar-right-scrollbar-visible-toggle');
-                sidebarright.removeClass('sidebar-right-scrollbar-not-visible-toggle');                                      
+                sidebarright.addClass('sidebar-right-scrollbar-visible-toggle').removeClass('sidebar-right-scrollbar-not-visible-toggle');                                      
             };
         } else {
             var sidebarright = $('#sidebar-right');
             if (!(sidebarright).hasClass('sidebar-right-scrollbar-not-visible-toggle')) {
-                sidebarright.addClass('sidebar-right-scrollbar-not-visible-toggle');
-                sidebarright.removeClass('sidebar-right-scrollbar-visible-toggle');
+                sidebarright.addClass('sidebar-right-scrollbar-not-visible-toggle').removeClass('sidebar-right-scrollbar-visible-toggle');
             }                
         };
     }
@@ -1159,6 +1146,10 @@ var tmanager = (function () {
 
     function isCreatingNewTiddler() {
         return !$('.carousel-control').is(":visible");
+    }
+
+    function logToConsole(string) {        
+        console.log(string);        
     }
 
     /*
@@ -1218,8 +1209,7 @@ var tmanager = (function () {
         $('[data-toggle=offcanvas]').click(function () {
             $('.row-offcanvas').toggleClass('active');
             $('.alert-offcanvas').toggleClass('active');
-            $('.sidebar-toggle i').toggleClass('fa fa-chevron-right');
-            $('.sidebar-toggle i').toggleClass('fa fa-chevron-left');
+            $('.sidebar-toggle i').toggleClass('fa fa-chevron-right').toggleClass('fa fa-chevron-left');
         });
 
         //The filterBy entry box
@@ -1284,8 +1274,7 @@ var tmanager = (function () {
     
         //Configure the data toggle for the expand/collapse all button
         $('[data-toggle=expand]').click(function () {
-            $('.sidebar-right-toggle i').toggleClass('fa fa-expand');
-            $('.sidebar-right-toggle i').toggleClass('fa fa-compress');
+            $('.sidebar-right-toggle i').toggleClass('fa fa-expand').toggleClass('fa fa-compress');
             expandCollapseAll();
         });
 
@@ -1384,6 +1373,11 @@ var tmanager = (function () {
         $( window ).resize(function() {
             checkScrollbarVisibility();
         });
+
+        //Register a console log method for browsers which don't have a console unless in
+        //debug (Internet Explorer)
+        if (!window.console) window.console = {};
+        if (!window.console.log) window.console.log = function () { };
     }
     
     /*
