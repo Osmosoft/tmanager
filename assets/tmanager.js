@@ -122,7 +122,9 @@ var tmanager = (function () {
         var spa = this;
 
         this.tsStore.get(this.tiddlers[tiddlerIndex], function (tiddler) {
-            
+                        
+            spa.tiddlers[tiddlerIndex] = tiddler;
+
             spa.workingTiddlerIndex = tiddlerIndex;
             
             successCallback(tiddler, flags);
@@ -464,7 +466,7 @@ var tmanager = (function () {
                         $('i.expand-toggle', card_html).removeClass('fa fa-chevron-down fa-2x').addClass('fa fa-chevron-up fa-2x');
                     }
 
-                    $('#card_' + workingTiddlerRevision).replaceWith(card_html);  
+                    $('#card_' + workingTiddlerRevision).replaceWith(card_html);
                                         
                 } else {
                     //New tiddler saved
@@ -489,9 +491,9 @@ var tmanager = (function () {
 
                     setClearFixes();
 
-                    updateTypeahead();
+                }
 
-                }                
+                updateTypeahead();            
             }
 
             if (direction === 'next' || direction === 'prev') {
