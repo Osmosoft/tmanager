@@ -61,7 +61,7 @@ var tmanager = (function () {
         this.title = title;
         this.author = author;
     }
-	
+    
     function SPA(host) {
         this.host = host,
         this.space = '',
@@ -72,7 +72,7 @@ var tmanager = (function () {
         this.configurationTiddler = '';
     }
 
-    SPA.prototype.getInitialTiddlers = function (tiddlySpace, successCallback, errorCallback) {
+    SPA.prototype.getInitialTiddlers = function (tiddlySpace, tiddlyQuery, autoexpand, successCallback, errorCallback) {
         logToConsole('Getting initial tiddlers from host ' + this.host);
 
         var spa = this;
@@ -82,14 +82,18 @@ var tmanager = (function () {
             var excludeQuery = ' !#excludeLists !#excludeSearch',
                 regex = /(_public|_private|_archive)$/;
 
-            spa.tiddlers = spa.tsStore(excludeQuery).unique().sort('title');
+            if (tiddlyQuery && tiddlyQuery !== '') {
+                spa.tiddlers = spa.tsStore(tiddlyQuery + excludeQuery).unique().sort('title');
+            } else {
+                spa.tiddlers = spa.tsStore(excludeQuery).unique().sort('title');
+            }
             
             logToConsole('Number of tiddlers returned = ' + spa.tiddlers.length);
             
             //Set the space name by using the default push location
             spa.space = spa.tsStore.getDefaults().pushTo.name.replace(regex, '')
 
-            successCallback();
+            successCallback(autoexpand);
 
         } );
     };
@@ -337,14 +341,14 @@ var tmanager = (function () {
     /*
      * Call back functions
      */
-    function getInitialTiddlersCallback() {        
+    function getInitialTiddlersCallback(autoexpand) {        
         var configurationExists = false,
             configurationTiddlerName ='tManagerConfig',
             configurationExists = false,
             regEx = /(\/\/)([^.]*)(\.)/;
 
         $.each(mySPA.tiddlers, function (index) {
-            if (this.title === configurationTiddlerName) {
+            if (this.title === configurationTiddlerName && this.uri) {
                 if (mySPA.space === this.uri.match(regEx)[2]) {
                     //The configuration tiddler exists within this space.
                     configurationExists = true;
@@ -360,9 +364,13 @@ var tmanager = (function () {
                 mySPA.configurationTiddler = tiddler;
                 updatePresets();
                 renderTiddlersAsCardsCallback(mySPA.tiddlers);
+                if (autoexpand && autoexpand === 'true') {
+                    $('.sidebar-right-toggle i').toggleClass('fa fa-expand').toggleClass('fa fa-compress');
+                    expandCollapseAll();
+                }
             }, true);
-        } else {
-            //Configuration tiddler does not exist, so create the default one
+        } else if (/csrf_token=\d+:\w+:\w+/.test(document.cookie)) {
+            //Logged into this space, but the configuration tiddler does not exist, so create the default one
             var configTiddler = new tiddlyweb.Tiddler({
                 title: configurationTiddlerName,
                 text:  '{"presets":[]}',
@@ -372,8 +380,21 @@ var tmanager = (function () {
             mySPA.tsStore.add(configTiddler, true).save(configTiddler, function(tiddler) {
                 mySPA.configurationTiddler = tiddler;
                 updatePresets();
-                renderTiddlersAsCardsCallback(mySPA.tiddlers)
+                renderTiddlersAsCardsCallback(mySPA.tiddlers);
+                if (autoexpand && autoexpand === 'true') {
+                    $('.sidebar-right-toggle i').toggleClass('fa fa-expand').toggleClass('fa fa-compress');
+                    expandCollapseAll();
+                }
             });
+        } else {
+            //Not logged in, so hide the controls whic require you to be logged in and ignore the configuration tiddler
+            $('#sidebar-right [data-toggle=addnew]').hide();
+            $('#save-preset').hide();
+            renderTiddlersAsCardsCallback(mySPA.tiddlers);
+            if (autoexpand && autoexpand === 'true') {
+                $('.sidebar-right-toggle i').toggleClass('fa fa-expand').toggleClass('fa fa-compress');
+                expandCollapseAll();
+            }
         }
     }
     
@@ -658,13 +679,15 @@ var tmanager = (function () {
         updateSearchForm();
      }
     function updatePresets() {
-        configuration = JSON.parse(mySPA.configurationTiddler.text);
+        if (mySPA.configurationTiddler != null) {
+            configuration = JSON.parse(mySPA.configurationTiddler.text);
 
-        $('#presetItems').empty().append('<option value="" disabled selected>Preset</option>');
+            $('#presetItems').empty().append('<option value="" disabled selected>Preset</option>');
 
-        $.each(configuration.presets, function () {
-            $('#presetItems').append('<option value="' + this.name + '">' + this.name + '</option>');
-        });    
+            $.each(configuration.presets, function () {
+                $('#presetItems').append('<option value="' + this.name + '">' + this.name + '</option>');
+            });
+        }
     }    
     function updateSearchForm() {
         var selectedPreset = $('#presetItems').val();
@@ -734,10 +757,10 @@ var tmanager = (function () {
             $(nextSlideToShow + ' iframe').attr('id', 'iframeid');            
             document.getElementById('iframeid').contentWindow.document.write(data.text); 
             
-            var head = $(iFrame).contents().find("head");                
-            head.append($("<link/>", 
-                { rel: "stylesheet", href: "bootstrap.min.css", type: "text/css" }));
-
+            var head = $(iFrame).contents().find("head");  
+            if ($('link', head).length === 0) {
+                head.append($("<link/>", { rel: "stylesheet", href: "bootstrap.min.css", type: "text/css" }));                 
+            }              
         }
         
 
@@ -786,6 +809,7 @@ var tmanager = (function () {
         if (data.bag && /_private$/.test(data.bag.name)) {
             card_dom = $('<div/>').html(card_html);
             $('.privacy i', card_dom).removeClass('fa fa-unlock-alt fa-2x').addClass('fa fa-lock fa-2x').attr("title", "Private");
+
             card_html = card_dom.html();
         }
         return card_html;
@@ -1150,6 +1174,20 @@ var tmanager = (function () {
         return !$('.carousel-control').is(":visible");
     }
 
+    function getUrlParameter(sParam)
+    {
+        var sPageURL = window.location.search.substring(1);
+        var sURLVariables = sPageURL.split('&');
+        for (var i = 0; i < sURLVariables.length; i++) 
+        {
+            var sParameterName = sURLVariables[i].split('=');
+            if (sParameterName[0] == sParam) 
+            {
+                return decodeURIComponent(sParameterName[1]);
+            }
+        }
+    } 
+
     function logToConsole(string) {        
         console.log(string);        
     }
@@ -1391,22 +1429,28 @@ var tmanager = (function () {
  
     /*
      * Public functions
-     */	  
-	  
+     */   
+      
     init: function () {
         // Get the HTML to represent the templates
         var cardTemplateScript = $('#cardTemplate').html(),
-            slideTemplateScript = $('#slideTemplate').html();
-    	
-    	mySPA = new SPA('http://' + window.location.hostname);
+            slideTemplateScript = $('#slideTemplate').html(),
+            filter,
+            autoexpand;
+        
+        mySPA = new SPA('http://' + window.location.hostname);
         
         //Bind the UI
         bindUIEvents();
         
         //Perform the initial search for tiddlers
         if ($('#container').length === 0) {
+
+            filter = getUrlParameter('filter');
+            autoexpand = getUrlParameter('autoexpand');
+
             // Get the list of tiddlers
-            mySPA.getInitialTiddlers(mySPA.host, getInitialTiddlersCallback, retrievalErrorCallback);
+            mySPA.getInitialTiddlers(mySPA.host, filter, autoexpand, getInitialTiddlersCallback, retrievalErrorCallback);
         }
         
         // Compile the templates
@@ -1419,14 +1463,24 @@ var tmanager = (function () {
     getCardBody: function (revision) {        
         if ($('#tiddler-content-' + revision).html() === '') {
             
-        	var tiddlerIndex = getTiddlerIndexFromRevision(revision),  
-                tiddler = mySPA.tiddlers[tiddlerIndex];
+            var tiddlerIndex = getTiddlerIndexFromRevision(revision),  
+                tiddler = mySPA.tiddlers[tiddlerIndex],
+                iFrame;
             
             mySPA.tsStore.get(tiddler, function (tiddler) {
                 if (tiddler.type === 'image/svg+xml') {
                     $('#tiddler-content-' + revision).html(tiddler.text);
                 } else if (tiddler.type === 'image/png' || tiddler.type === 'image/jpeg') {
                     $('#tiddler-content-' + revision).html('<img src="' + tiddler.uri + '"/>');
+                } else if (tiddler.type === 'text/html') {
+                    iFrame = 'iFrame_' + revision;
+                    //$('#tiddler-content-' + revision).html('<iframe id="' + iFrame + '"" sandbox="allow-same-origin" src="' + tiddler.uri + '"/>');
+                    $('#tiddler-content-' + revision).html('<iframe id="' + iFrame + '"" sandbox="allow-same-origin" src="' + tiddler.uri + '"/>');
+                    document.getElementById(iFrame).contentWindow.document.write(tiddler.text);             
+                    var head = $('#' + iFrame).contents().find("head");
+                    if ($('link', head).length === 0) {
+                        head.append($("<link/>", { rel: "stylesheet", href: "bootstrap.min.css", type: "text/css" }));                 
+                    }
                 } else if (tiddler.render) {
                     $('#tiddler-content-' + revision).html(tiddler.render);
                 } else {

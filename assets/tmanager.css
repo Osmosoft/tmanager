@@ -494,9 +494,11 @@ span.twitter-typeahead .tt-suggestion.tt-cursor {
 .sceditor-container { font-weight: normal }
 .sceditor-button { box-sizing: content-box; -webkit-box-sizing: content-box; -moz-box-sizing: content-box; }
 
-.modal-body iframe {
+.modal-body iframe, .card iframe {
   width: 100%;
+  border: none;
 }
+
 
 /* Portrait Media Queries */
 @media (min-width:320px) and (orientation:portrait) { 

@@ -136,10 +136,6 @@
 				<div class="clearfix"></div>
 			</div>
 
-			<div class="alert-offcanvas alert-offcanvas-left">
-				<div class="alert" role="alert">This is a test alert message.</div>
-			</div>
-
 		</div>
 
 		<!--/main-->
@@ -324,7 +320,7 @@
 		                    		<img src="{{uri}}"/>
 	                    		{{else}}
 	                    			{{#ifCond type '==' "text/html"}}
-			                    		<iframe sandbox="allow-same-origin" id="IFrame" class='activeIFrame' frameborder="0"></iframe>
+			                    		<iframe sandbox="allow-same-origin allow-popups" id="IFrame" class='activeIFrame' frameborder="0"></iframe>
 		                    		{{else}}
 		                    			{{#if render}}
 		                    	  			{{{render}}}
