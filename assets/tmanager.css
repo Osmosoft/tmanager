@@ -251,6 +251,17 @@ body {
   margin: 0 auto;
 }
 
+#loading {
+  position: absolute;
+  width: 300px;
+  top: 50%;
+  left: 50%;
+  margin: -100px 0 0 -50px;
+  text-align: center;
+  font-size: 2em;
+  z-index: 4000;
+}
+
 #tiddlerModal {
 	overflow:hidden;
 }
@@ -499,6 +510,20 @@ span.twitter-typeahead .tt-suggestion.tt-cursor {
   border: none;
 }
 
+
+/*.carousel-inner, .modal-dialog, .item, .modal-body div, .modal-body iframe {
+  height: 100%;
+}
+*/
+
+
+
+/*.modal-footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+*/
 
 /* Portrait Media Queries */
 @media (min-width:320px) and (orientation:portrait) { 

@@ -114,7 +114,7 @@
 			    </div>-->
 			</div>
 
-			<div id="sidebar-right" class="sidebar-right-toggle">
+			<div id="sidebar-right" class="sidebar-right-toggle sidebar-right-scrollbar-not-visible-toggle">
 				<button type="button" class="btn btn-primary btn-xl"
 					data-toggle="addnew" data-toggle="tooltip" data-placement="bottom"
 					title="Add New">
@@ -129,9 +129,10 @@
 
 			<div class="container-full">
 
-				<div id="cards"></div>
-				<!--/row-->
-
+				<div id="cards">
+					<div class="clearfix visible-xs-block cardclearfix"></div>					
+				</div>
+				<!--/row-->					
 				<br>
 				<div class="clearfix"></div>
 			</div>
@@ -140,6 +141,9 @@
 
 		<!--/main-->
 
+		<div id="loading">
+			<div><i class="fa fa-circle-o-notch fa-spin"></i> Loading...</div>
+		</div>
 
 	</div>
 	<!--row-offcanvas row-offcanvas-left-->
@@ -149,6 +153,9 @@
         </button>
     </div>
     -->
+
+
+
 	<!--tiddler modal-->
 	<div id="tiddlerModal" class="modal fade" tabindex="-1" role="dialog"
 		aria-hidden="true">
